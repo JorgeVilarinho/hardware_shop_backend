@@ -1,8 +1,10 @@
 import express from 'express';
 import http from 'http';
 import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser'
 import compression from 'compression';
 import cors from 'cors';
+import { PORT } from './config'
 
 const app = express();
 
@@ -12,9 +14,11 @@ app.use(cors({
 
 app.use(compression());
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 const server = http.createServer(app);
 
-server.listen(8080, () => {
-  console.log('Server running on http://localhost:8080')
-})
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
