@@ -1,7 +1,7 @@
 import { User } from "models/user";
 import { pool } from "./../db";
 
-export const getUser = async (email: string): Promise<User> | undefined => {
+export const getUser = async (email: string): Promise<User | undefined> => {
   const query = {
     name: 'get-user-by-email',
     text: 'SELECT * FROM usuario WHERE email = $1;',

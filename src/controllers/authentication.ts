@@ -2,28 +2,31 @@ import { createUser, getUser } from '../db/users';
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET, SALT_ROUNDS } from 'config';
+import { JWT_SECRET, SALT_ROUNDS } from '../config';
 
 export const register = async (req: express.Request, res: express.Response) => {
   try {
     const { name, email, password } = req.body
 
     if(!name || !email || !password) {
-      res.sendStatus(400);
+      res.status(400).json({ message: 'Error con los datos' });
+      return;
     }
 
-    const user = getUser(email);
+    const user = await getUser(email);
 
     if(user) {
-      res.sendStatus(400);
+      res.status(400).json({ message: 'Ya existe una cuenta con ese email' });
+      return;
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     await createUser(name, email, hashedPassword);
-    res.sendStatus(200);
+    res.status(200).end();
   } catch(error) {
-    res.sendStatus(500);
+    console.log(error);
+    res.status(500).end();
   }
 }
 
@@ -32,19 +35,22 @@ export const login = async (req: express.Request, res: express.Response) => {
     const { email, password } = req.body
 
     if(!email || !password) {
-      res.sendStatus(400);
+      res.status(400).json({ message: 'Error con los datos' });
+      return;
     }
 
     const user = await getUser(email);
 
     if(!user) {
-      res.json({ message: 'Inicio de sesión incorrecto' }).sendStatus(401);
+      res.status(401).json({ message: 'Inicio de sesión incorrecto' });
+      return;
     }
 
     const isValid = await bcrypt.compare(password, user.password);
 
     if(!isValid) {
-      res.json({ message: 'Inicio de sesión incorrecto' }).sendStatus(401);
+      res.status(401).json({ message: 'Inicio de sesión incorrecto' });
+      return;
     }
 
     const token = jwt.sign(
@@ -60,15 +66,15 @@ export const login = async (req: express.Request, res: express.Response) => {
       sameSite: 'strict',
       maxAge: 1000 * 60 * 60
     })
-    .json({ message: 'Inicio de sesión correcto' })
-    .sendStatus(200);
+    .status(200)
+    .json({ message: 'Inicio de sesión correcto' });
   } catch(error) {
-    res.sendStatus(500);
+    res.status(500).end();
   }
 }
 
 export const logout = (req: express.Request, res: express.Response) => {
   res.clearCookie('access_token')
-  .json({ message: 'Se ha cerrado la sesión correctamente' })
-  .sendStatus(200);
+  .status(200)
+  .json({ message: 'Se ha cerrado la sesión correctamente' });
 }
