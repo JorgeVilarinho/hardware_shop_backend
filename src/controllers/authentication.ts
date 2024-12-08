@@ -1,4 +1,4 @@
-import { createUser, getUser } from '../db/users';
+import { createUserRepository, getUserByEmailRepository } from '../db/users';
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -9,11 +9,11 @@ export const register = async (req: express.Request, res: express.Response) => {
     const { name, email, password } = req.body
 
     if(!name || !email || !password) {
-      res.status(400).json({ message: 'Error con los datos' });
+      res.status(400).json({ message: 'Error al introducir los datos.' });
       return;
     }
 
-    const user = await getUser(email);
+    const user = await getUserByEmailRepository(email);
 
     if(user) {
       res.status(400).json({ message: 'Ya existe una cuenta con ese email' });
@@ -22,10 +22,9 @@ export const register = async (req: express.Request, res: express.Response) => {
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    await createUser(name, email, hashedPassword);
+    await createUserRepository(name, email, hashedPassword);
     res.status(200).end();
   } catch(error) {
-    console.log(error);
     res.status(500).end();
   }
 }
@@ -35,11 +34,11 @@ export const login = async (req: express.Request, res: express.Response) => {
     const { email, password } = req.body
 
     if(!email || !password) {
-      res.status(400).json({ message: 'Error con los datos' });
+      res.status(400).json({ message: 'Error al introducir los datos.' });
       return;
     }
 
-    const user = await getUser(email);
+    const user = await getUserByEmailRepository(email);
 
     if(!user) {
       res.status(401).json({ message: 'Inicio de sesión incorrecto' });
@@ -67,14 +66,45 @@ export const login = async (req: express.Request, res: express.Response) => {
       maxAge: 1000 * 60 * 60
     })
     .status(200)
-    .json({ message: 'Inicio de sesión correcto' });
+    .json({ 
+      message: 'Inicio de sesión correcto',
+      userData: {
+        name: user.name,
+        email: user.email,
+        dni: user.dni,
+        phone: user.phone
+      }
+     });
   } catch(error) {
     res.status(500).end();
   }
 }
 
 export const logout = (req: express.Request, res: express.Response) => {
-  res.clearCookie('access_token')
-  .status(200)
-  .json({ message: 'Se ha cerrado la sesión correctamente' });
+  try {
+    console.log(req.cookies['access_token']);
+
+    res.clearCookie('access_token')
+    .status(200)
+    .json({ message: 'Se ha cerrado la sesión correctamente' });
+
+    console.log(req.cookies['access_token']);
+  } catch(error) {
+    res.status(500).end()
+  }
+}
+
+export const isAuthenticated = (req: express.Request, res: express.Response) => {
+  try {
+    const access_token = req.cookies['access_token'];
+
+    if(!access_token) {
+      res.status(401).end();
+      return;
+    }
+
+    res.status(200).end();
+  } catch(error) {
+    res.status(500).end();
+  }
 }
