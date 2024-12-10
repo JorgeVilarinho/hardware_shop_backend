@@ -1,4 +1,4 @@
-import { JWT_SECRET } from '../config';
+import { JWT_SECRET } from '../config.js';
 import express from 'express'
 import jwt from 'jsonwebtoken'
 

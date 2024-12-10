@@ -1,8 +1,8 @@
-import { createUserRepository, getUserByEmailRepository } from '../db/users';
+import { createClientRepository, getUserByEmailRepository, getUserTypeRepository } from '../db/users.js';
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET, SALT_ROUNDS } from '../config';
+import { JWT_SECRET, SALT_ROUNDS } from '../config.js';
 
 export const register = async (req: express.Request, res: express.Response) => {
   try {
@@ -22,8 +22,8 @@ export const register = async (req: express.Request, res: express.Response) => {
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    await createUserRepository(name, email, hashedPassword);
-    res.status(200).end();
+    await createClientRepository(name, email, hashedPassword);
+    res.status(200).json({ message: 'Se ha realizado el registro correctamente' });
   } catch(error) {
     res.status(500).end();
   }
@@ -52,8 +52,16 @@ export const login = async (req: express.Request, res: express.Response) => {
       return;
     }
 
+    console.log(user.id)
+    const userType = await getUserTypeRepository(user.id);
+
+    if(!userType) {
+      res.status(400).json({ message: 'Error con el tipo de usuario devuelto.' });
+      return;
+    }
+
     const token = jwt.sign(
-      { id: user.id, user: user.email }, 
+      { id: user.id, user: user.email, userType }, 
       JWT_SECRET,
       {
         expiresIn: '1h'
@@ -82,13 +90,9 @@ export const login = async (req: express.Request, res: express.Response) => {
 
 export const logout = (req: express.Request, res: express.Response) => {
   try {
-    console.log(req.cookies['access_token']);
-
     res.clearCookie('access_token')
     .status(200)
     .json({ message: 'Se ha cerrado la sesión correctamente' });
-
-    console.log(req.cookies['access_token']);
   } catch(error) {
     res.status(500).end()
   }

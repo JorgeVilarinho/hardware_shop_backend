@@ -1,4 +1,4 @@
-import { isAuthenticated, login, logout, register } from '../controllers/authentication';
+import { isAuthenticated, login, logout, register } from '../controllers/authentication.js';
 import express from 'express';
 
 export default (router: express.Router) => {

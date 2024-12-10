@@ -1,10 +1,12 @@
 {
   "name": "hardwareshopbackend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "start": "nodemon",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
@@ -14,8 +16,7 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/pg": "^8.11.10",
-    "nodemon": "^3.1.7",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },
   "dependencies": {

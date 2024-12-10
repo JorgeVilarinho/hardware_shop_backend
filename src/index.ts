@@ -1,12 +1,11 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
 import http from 'http';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser'
 import compression from 'compression';
 import cors from 'cors';
-import { JWT_SECRET, PORT } from './config'
-import router from './router';
+import { PORT } from './config.js'
+import router from './router/index.js';
 
 const app = express();
 
