@@ -1,9 +1,9 @@
 export interface Address {
   id: number,
-  name: string,
-  address: string,
-  cp: number,
-  province: string,
-  city: string,
-  phone: string,
+  nombre: string,
+  direccion: string,
+  cod_postal: number,
+  provincia: string,
+  ciudad: string,
+  telefono: string,
 }

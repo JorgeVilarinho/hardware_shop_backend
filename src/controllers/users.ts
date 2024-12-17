@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import { addAddressToClientRepository, getClientByIdRepository, getUserByDniRepository, getUserByEmailRepository, 
+import { addAddressToClientRepository, deleteAddressFromClientRepository, getAddressesFromClientRepository, getClientByIdRepository, getUserByDniRepository, getUserByEmailRepository, 
   getUserByIdRepository, updateUserDataRepository, updateUserPasswordRepository } from '../db/users.js';
 import { SALT_ROUNDS } from '../config.js';
 
@@ -146,15 +146,69 @@ export const addAddress = async (req: express.Request, res: express.Response) =>
       return
     }
 
-    const isOk = await addAddressToClientRepository(name, address, cp, province, city, phone, client.id);
+    const newAddress = await addAddressToClientRepository(name, address, cp, province, city, phone, client.id);
     
-    if(!isOk) {
-      res.status(500).end()
+    if(!newAddress) {
+      res.status(500).json({ message: 'No se ha podido añadir la dirección.' })
       return
     }
 
-    res.status(200).json({ message: 'Se ha añadido correctamente la dirección.' })
+    res.status(200).json({ 
+      message: 'Se ha añadido correctamente la dirección.', 
+      address: newAddress
+    })
   } catch (error) {
-    res.status(500).end()
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
+
+export const getAddresses = async (req: express.Request, res: express.Response) => {
+  try {
+    const { authenticatedUser } = req.body;
+
+    const client = await getClientByIdRepository(authenticatedUser.id);
+
+    if(!client) {
+      res.status(404).json({ message: 'No existe el cliente con id ' + authenticatedUser.id })
+      return
+    }
+
+    const addresses = await getAddressesFromClientRepository(client.id)
+
+    res.status(200).json({
+      addresses: addresses
+    })
+  } catch (error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
+
+export const deleteAddress = async (req: express.Request, res: express.Response) => {
+  try {
+    const { authenticatedUser } = req.body;
+    const { id } = req.params
+
+    const client = await getClientByIdRepository(authenticatedUser.id);
+
+    if(!client) {
+      res.status(404).json({ message: 'No existe el cliente con id ' + authenticatedUser.id })
+      return
+    }
+
+    if(!id) {
+      res.status(500).json({ message: 'No se ha dado un id correcto para eliminar la dirección' })
+      return
+    }
+
+    const isOk = await deleteAddressFromClientRepository(+id)
+
+    if(!isOk) {
+      res.status(500).json({ message: 'No se ha podido eliminar la dirección' })
+      return
+    }
+
+    res.status(200).json({ message: 'Se ha eliminado correctamente la dirección' })
+  } catch (error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }

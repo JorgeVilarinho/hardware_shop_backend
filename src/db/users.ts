@@ -116,12 +116,9 @@ export const getUserTypeRepository = async (id: number) => {
 
 export const getClientByIdRepository = async (id: number): Promise<Client | undefined> => {
   const queryCommand = `
-    SELECT u.name, u.email, u.password, u.dni, u.phone, 
-    d.id, d.nombre, d.direccion, d.cod_postal, d.provincia, 
-    d.ciudad, d.telefono
-    FROM usuario u 
-    INNER JOIN cliente c ON u.id = c.user_id
-    INNER JOIN direccion d ON d.client_id = c.id
+    SELECT c.id, u.name, u.email, u.password, u.dni, u.phone
+    FROM usuario AS u 
+    JOIN cliente AS c ON c.user_id = u.id
     WHERE u.id = $1;
   `;
 
@@ -134,28 +131,13 @@ export const getClientByIdRepository = async (id: number): Promise<Client | unde
   const res = await pool.query(query);
   
   if(res.rowCount! > 0) {
-    let address: Address | undefined = undefined
-
-    if(res.rows[0].nombre != null) {
-      address = {
-        id: res.rows[0].id,
-        name: res.rows[0].nombre,
-        address: res.rows[0].direccion,
-        city: res.rows[0].ciudad,
-        province: res.rows[0].provincia,
-        cp: res.rows[0].cod_postal,
-        phone: res.rows[0].telefono
-      } 
-    }
-
     const client: Client = {
-      id: id,
+      id: res.rows[0].id,
       name: res.rows[0].name,
       email: res.rows[0].email,
       password: res.rows[0].password,
       dni: res.rows[0].dni,
-      phone: res.rows[0].phone,
-      address
+      phone: res.rows[0].phone
     }
 
     return client;
@@ -218,13 +200,50 @@ export const updateUserPasswordRepository = async (id: number, password: string)
 }
 
 export const addAddressToClientRepository = async (name: string, address: string, cp: number, 
-  province: string, city: string, phone: string, client_id: number) => {
+  province: string, city: string, phone: string, client_id: number): Promise<Address | undefined> => {
   const query = {
     name: 'create-address',
-    text: 'INSERT INTO direccion (nombre, direccion, cod_postal, provincia, ciudad, telefono, client_id) VALUES ($1, $2, $3, $4, $5, $6, $7);',
+    text: 'INSERT INTO direccion (nombre, direccion, cod_postal, provincia, ciudad, telefono, client_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
     values: [ name, address, cp, province, city, phone, client_id ]
   };
 
   const res = await pool.query(query);
+  
+  if(res.rowCount! > 0) {
+    return {
+      id: res.rows[0].id,
+      nombre: res.rows[0].nombre,
+      direccion: res.rows[0].direccion,
+      cod_postal: res.rows[0].cod_postal,
+      provincia: res.rows[0].provincia,
+      ciudad: res.rows[0].ciudad,
+      telefono: res.rows[0].telefono
+    }
+  }
+
+  return undefined
+}
+
+export const getAddressesFromClientRepository = async (client_id: number) => {
+  const query = {
+    name: 'get-addresses-from-client',
+    text: 'SELECT id, nombre, direccion, cod_postal, provincia, ciudad, telefono FROM direccion WHERE client_id = $1;',
+    values: [ client_id ]
+  };
+
+  const res = await pool.query(query);
+  
+  return res.rows;
+}
+
+export const deleteAddressFromClientRepository = async (address_id: number) => {
+  const query = {
+    name: 'get-addresses-from-client-id',
+    text: 'DELETE FROM direccion WHERE id = $1;',
+    values: [ address_id ]
+  };
+
+  const res = await pool.query(query);
+
   return res.rowCount! > 0;
 }
