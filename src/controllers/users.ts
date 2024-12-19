@@ -4,55 +4,27 @@ import { addAddressToClientRepository, deleteAddressFromClientRepository, getAdd
   getUserByIdRepository, updateUserDataRepository, updateUserPasswordRepository } from '../db/users.js';
 import { SALT_ROUNDS } from '../config.js';
 
-export const getUserByEmail = async (req: express.Request, res: express.Response) => {
+export const getUserData = async (req: express.Request, res: express.Response) => {
   try {
-    const { email } = req.params;
+    const { authenticatedUser } = req.body;
 
-    if(!email) {
-      res.status(400).json({ message: 'Los datos introducidos son incorrectos' });
+    const client = await getClientByIdRepository(authenticatedUser.id);
+
+    if(!client) {
+      res.status(500).json({ message: 'No existe el cliente con id ' + authenticatedUser.id })
       return
     }
 
-    const user = await getUserByEmailRepository(email);
-
-    if(!user) {
-      res.status(400).json({ message: 'El usuario no existe' });
-      return;
-    }
-
-    res.status(200).json({ user: {
-      name: user.name,
-      email: user.email
-    } });
-  } catch(error) {
-    res.status(500).end()
-  }
-}
-
-export const getUserByDni = async (req: express.Request, res: express.Response) => {
-  try {
-    const { dni } = req.params;
-
-    if(!dni) {
-      res.status(400).json({ message: 'Los datos introducidos son incorrectos' });
-      return
-    }
-
-    const user = await getUserByDniRepository(dni);
-
-    if(!user) {
-      res.status(400).json({ message: 'El usuario no existe' });
-      return;
-    }
-
-    res.status(200).json({ user: {
-      name: user.name,
-      email: user.email,
-      dni: user.dni,
-      phone: user.phone
-    } });
-  } catch(error) {
-    res.status(500).end()
+    res.status(200).json({ 
+      data: {
+        fullname: client.name,
+        email: client.email,
+        dni: client.dni,
+        phone: client.phone
+      } 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
 
