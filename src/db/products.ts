@@ -3,11 +3,13 @@ import { pool } from "../db.js";
 export const getAllProductsRepository = async () => {
   const query = {
     name: 'get-all-products',
-    text: `SELECT p.id, p.nombre AS name, p.descripcion AS description, m.nombre AS brand, 
-          c.nombre AS category, p.unidades AS units, p.precio AS price, p.descuento AS discount 
+    text: `SELECT p.id, p.nombre AS name, p.descripcion AS description, 
+          m.nombre AS brand, c.nombre AS category, p.unidades AS units, 
+          p.precio AS price, p.descuento AS discount, p.image_name AS image
           FROM producto p
           JOIN categoria c ON c.id = p.id_categoria
           JOIN marca m ON m.id = p.id_marca
+          WHERE unidades > 0
           ORDER BY p.nombre;`
   };
   

@@ -6,5 +6,6 @@ export interface Product {
   categoria: string,
   descuento?: number,
   unidades: number,
-  precio: number
+  precio: number,
+  imagen: string
 }

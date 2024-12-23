@@ -17,6 +17,7 @@ app.use(cors({
 app.use(compression());
 app.use(bodyParser.json());
 app.use(cookieParser());
+app.use(express.static('public'));
 
 app.use('/', router());
 
