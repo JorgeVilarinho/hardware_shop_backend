@@ -114,7 +114,7 @@ export const getUserTypeRepository = async (id: number) => {
   return undefined;
 }
 
-export const getClientByIdRepository = async (id: number): Promise<Client | undefined> => {
+export const getClientByIdRepository = async (id: number) => {
   const queryCommand = `
     SELECT c.id, u.name, u.email, u.password, u.dni, u.phone
     FROM usuario AS u 
@@ -236,7 +236,7 @@ export const getAddressesFromClientRepository = async (client_id: number) => {
   return res.rows;
 }
 
-export const deleteAddressFromClientRepository = async (address_id: number) => {
+export const deleteAddressFromClientRepository = async (address_id: string) => {
   const query = {
     name: 'get-addresses-from-client-id',
     text: 'DELETE FROM direccion WHERE id = $1;',

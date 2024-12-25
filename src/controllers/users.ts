@@ -172,7 +172,7 @@ export const deleteAddress = async (req: express.Request, res: express.Response)
       return
     }
 
-    const isOk = await deleteAddressFromClientRepository(+id)
+    const isOk = await deleteAddressFromClientRepository(id)
 
     if(!isOk) {
       res.status(500).json({ message: 'No se ha podido eliminar la dirección' })

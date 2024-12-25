@@ -17,3 +17,17 @@ export const getAllProductsRepository = async () => {
   
   return res.rows;
 }
+
+export const getProductStockRepository = async (id: string) => {
+  const query = {
+    name: 'get-product-stock',
+    text: `SELECT p.unidades AS units 
+          FROM producto p
+          WHERE p.id = $1;`,
+    values: [ id ]
+  };
+  
+  const res = await pool.query(query);
+  
+  return res.rows[0].units;
+}
