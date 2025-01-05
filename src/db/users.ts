@@ -2,6 +2,7 @@ import type { User } from "../models/user.js";
 import { pool } from "./../db.js";
 import type { Client } from "../models/client.js";
 import type { Address } from "../models/address.js";
+import { createShoppingBasketRepository } from "./shopping_basket.js";
 
 export const getUserByEmailRepository = async (email: string): Promise<User | undefined> => {
   const query = {
@@ -162,7 +163,15 @@ export const createClientRepository = async (name: string, email: string, passwo
   
     query = {
       name: 'create-client',
-      text: 'INSERT INTO cliente (user_id) VALUES ($1);',
+      text: 'INSERT INTO cliente (user_id) VALUES ($1) RETURNING *;',
+      values: [ res.rows[0].id ]
+    };
+
+    res = await dbClient.query(query);
+
+    query = {
+      name: 'create-shopping-basket',
+      text: 'INSERT INTO cesta (client_id) VALUES ($1);',
       values: [ res.rows[0].id ]
     };
   
