@@ -1,5 +1,15 @@
 import express from 'express';
-import { getBrandsByCategoryRepository } from '../db/brands.js';
+import { getBrandsByCategoryRepository, getBrandsRepository } from '../db/brands.js';
+
+export const getBrands = async (req: express.Request, res: express.Response) => {
+  try {
+    const brands = await getBrandsRepository();
+
+    res.status(200).json({ brands })
+  } catch (error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
 
 export const getBrandsByCategory = async (req: express.Request, res: express.Response) => {
   try {

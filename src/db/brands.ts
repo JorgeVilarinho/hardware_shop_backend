@@ -1,6 +1,17 @@
 import { pool } from "../db.js";
 import type { Brand } from "../models/brand.js";
 
+export const getBrandsRepository = async () => {
+  const query = {
+    name: 'get-brands',
+    text: `SELECT * FROM marca;`,
+  };
+  
+  const res = await pool.query<Brand>(query);
+  
+  return res.rows;
+}
+
 export const getBrandsByCategoryRepository = async (categoryId: string) => {
   const query = {
       name: 'get-brands-by-category',

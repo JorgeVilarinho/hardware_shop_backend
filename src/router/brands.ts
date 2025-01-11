@@ -1,6 +1,7 @@
 import express from 'express';
-import { getBrandsByCategory } from '../controllers/brands.js';
+import { getBrands, getBrandsByCategory } from '../controllers/brands.js';
 
 export default (router: express.Router) => {
+  router.get('/api/brands', getBrands);
   router.get('/api/brands/:categoryId', getBrandsByCategory);
 }
