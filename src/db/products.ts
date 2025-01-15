@@ -59,21 +59,21 @@ export const getProductsByFiltersRepository = async (orderBy: string, minPrice: 
   }
 
   if(orderBy) {
-    switch(OrderBy[+orderBy]) {
-      case 'LOWER_PRICE':
+    switch(orderBy) {
+      case OrderBy.LOWER_PRICE:
         queryText = queryText.concat(' ORDER BY p.precio');
         break
-      case 'GREATER_PRICE':
+      case OrderBy.GREATER_PRICE:
         queryText = queryText.concat(' ORDER BY p.precio DESC');
         break
-      case 'DISCOUNT':
+      case OrderBy.DISCOUNT:
         queryText = queryText.concat(' ORDER BY p.descuento DESC NULLS LAST');
         break
-      case 'STOCK':
+      case OrderBy.STOCK:
         queryText = queryText.concat(' ORDER BY p.unidades DESC');
         break
       default:
-        throw Error('OrderBy filter error')
+        throw Error('OrderBy filter error');
     }
   } else {
     queryText = queryText.concat(' ORDER BY p.nombre;');
