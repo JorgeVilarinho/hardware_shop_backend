@@ -17,7 +17,6 @@ export const getProducts = async (req: express.Request, res: express.Response) =
 
     res.status(200).json({ products });
   } catch(error) {
-    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }

@@ -21,3 +21,14 @@ export const getShippingOptionsRepository = async () => {
   
   return res.rows;
 }
+
+export const getPaymentOptionsRepository = async () => {
+  const query = {
+    name: 'get-all-payment-options',
+    text: `SELECT * FROM opcion_pago ORDER BY id;`
+  };
+  
+  const res = await pool.query(query);
+  
+  return res.rows;
+}

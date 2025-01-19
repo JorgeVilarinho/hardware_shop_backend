@@ -179,7 +179,6 @@ export const createClientRepository = async (name: string, email: string, passwo
     await dbClient.query('COMMIT')
   } catch (error) {
     await dbClient.query('ROLLBACK')
-    console.log(error)
     throw error
   } finally {
     dbClient.release()

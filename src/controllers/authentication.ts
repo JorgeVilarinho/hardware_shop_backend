@@ -52,7 +52,6 @@ export const login = async (req: express.Request, res: express.Response) => {
       return;
     }
 
-    console.log(user.id)
     const userType = await getUserTypeRepository(user.id);
 
     if(!userType) {
