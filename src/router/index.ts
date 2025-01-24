@@ -6,6 +6,7 @@ import shopping_basket from './shopping_basket.js';
 import categories from './categories.js';
 import brands from './brands.js';
 import checkout from './checkout.js';
+import orders from './orders.js';
 
 const router = Router();
 
@@ -17,6 +18,7 @@ export default (): express.Router => {
   categories(router);
   brands(router);
   checkout(router);
+  orders(router)
   
   return router;
 }

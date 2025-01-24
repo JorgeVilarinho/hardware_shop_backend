@@ -1,3 +1,4 @@
 export enum OrderStatusValue {
-  PENDING_PAYMENT = 'pending-payment'
+  PENDING_PAYMENT = 'pending-payment',
+  CANCELED = 'canceled'
 }
