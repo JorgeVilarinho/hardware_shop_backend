@@ -3,6 +3,7 @@ import { pool } from "../db.js";
 import { OrderStatusValue } from "../models/orderStatusValue.model.js";
 import type { ActiveOrder } from "../models/activeOrder.js";
 import type { Product } from "../models/product.js";
+import type { ShippingOption } from "../models/shippingOption.js";
 
 export const getActiveOrdersRepository = async () => {
   let query: QueryConfig = {
@@ -47,7 +48,7 @@ export const getProductsFromOrderRepository = async (orderId: string) => {
     name: 'get-products-from-order',
     text: `SELECT p.id, m.nombre AS brand, c.nombre AS category, 
           p.nombre AS name, p.descripcion AS description, p.descuento AS discount, 
-          p.unidades AS units, p.precio AS price, p.image_name AS image
+          pp.cantidad AS units, p.precio AS price, p.image_name AS image
           FROM producto p
           JOIN pedido_producto pp
           ON p.id = pp.id_producto
@@ -62,4 +63,16 @@ export const getProductsFromOrderRepository = async (orderId: string) => {
   const res = await pool.query<Product>(query);
 
   return res.rows
+}
+
+export const getSippingOptionCostRepository = async (shippingOptionId: string) => {
+  const query: QueryConfig = {
+    name: 'get-shipping-option-cost',
+    text: `SELECT coste FROM opcion_envio WHERE id = $1;`,
+    values: [ shippingOptionId ]
+  }
+
+  const res = await pool.query<ShippingOption>(query);
+
+  return res.rows[0]?.coste
 }
