@@ -4,7 +4,7 @@ import { createOrderId } from '../helpers/checkout.js';
 import type { ProcessCheckoutRequest } from '../requests/processCheckoutRequest.js';
 import { getClientByIdRepository } from '../db/users.js';
 
-export const getShippingMethods = async (req: express.Request, res: express.Response) => {
+export const getShippingMethods = async (_: express.Request, res: express.Response) => {
   try {
     const shippingMethods = await getShippingMethodsRepository();
 
@@ -14,7 +14,7 @@ export const getShippingMethods = async (req: express.Request, res: express.Resp
   }
 }
 
-export const getShippingOptions = async (req: express.Request, res: express.Response) => {
+export const getShippingOptions = async (_: express.Request, res: express.Response) => {
   try {
     const shippingOptions = await getShippingOptionsRepository();
 
@@ -24,7 +24,7 @@ export const getShippingOptions = async (req: express.Request, res: express.Resp
   }
 }
 
-export const getPaymentOptions = async (req: express.Request, res: express.Response) => {
+export const getPaymentOptions = async (_: express.Request, res: express.Response) => {
   try {
     const paymentOptions = await getPaymentOptionsRepository();
 

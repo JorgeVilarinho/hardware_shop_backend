@@ -1,5 +1,5 @@
 import { pool } from "../db.js"
-import type { Order } from "../models/order.js";
+import type { OrderRepository } from "../models/orderRepository.js";
 import type { OrderStatus } from "../models/orderStatus.model.js";
 import { OrderStatusValue } from "../models/orderStatusValue.model.js";
 import type { Product } from "../models/product.js";
@@ -59,7 +59,7 @@ export const createOrderRepository = async (id: string, clientId: number,
         values: [ id, clientId, shippingMethodId, shippingOptionId, paymentOptionId, total, addressId, res.rows[0]?.id ]
       };
     
-      let res1 = await dbClient.query<Order>(query1);
+      let res1 = await dbClient.query<OrderRepository>(query1);
 
       for(let i = 0; i < products.length; i++) {
         const product = products[i]
