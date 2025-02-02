@@ -1,8 +1,12 @@
+import type { Query, QueryConfig } from "pg";
 import { pool } from "../db.js"
 import type { OrderRepository } from "../models/orderRepository.js";
 import type { OrderStatus } from "../models/orderStatus.model.js";
 import { OrderStatusValue } from "../models/orderStatusValue.model.js";
 import type { Product } from "../models/product.js";
+import type { ShippingMethod } from "../models/shippingMethod.js";
+import type { ShippingOption } from "../models/shippingOption.js";
+import type { PaymentOption } from "../models/paymentOption.js";
 
 export const getShippingMethodsRepository = async () => {
   const query = {
@@ -10,31 +14,43 @@ export const getShippingMethodsRepository = async () => {
     text: `SELECT * FROM metodo_envio ORDER BY id`
   };
   
-  const res = await pool.query(query);
+  const res = await pool.query<ShippingMethod>(query);
   
   return res.rows;
 }
 
+export const getShippingMethodByIdRepository = async (id: number) => {
+  const query: QueryConfig = {
+    name: 'get-shipping-method-by-id',
+    text: `SELECT * FROM metodo_envio WHERE id = $1`,
+    values: [ id ]
+  };
+  
+  const res = await pool.query<ShippingMethod>(query);
+  
+  return res.rows[0]
+}
+
 export const getShippingOptionsRepository = async () => {
-  const query = {
+  const query: QueryConfig = {
     name: 'get-all-shipping-options',
     text: `SELECT * FROM opcion_envio ORDER BY id;`
   };
   
-  const res = await pool.query(query);
+  const res = await pool.query<ShippingOption>(query);
   
-  return res.rows;
+  return res.rows
 }
 
 export const getPaymentOptionsRepository = async () => {
-  const query = {
+  const query: QueryConfig = {
     name: 'get-all-payment-options',
     text: `SELECT * FROM opcion_pago ORDER BY id;`
   };
   
-  const res = await pool.query(query);
+  const res = await pool.query<PaymentOption>(query);
   
-  return res.rows;
+  return res.rows
 }
 
 export const createOrderRepository = async (id: string, clientId: number, 
@@ -45,7 +61,7 @@ export const createOrderRepository = async (id: string, clientId: number,
     try {
       await dbClient.query('BEGIN')
 
-      let query = {
+      let query: QueryConfig = {
         name: 'get-order-status',
         text: 'SELECT * FROM estado_pedido WHERE valor = $1;',
         values: [ OrderStatusValue.PENDING_PAYMENT ]
@@ -53,7 +69,7 @@ export const createOrderRepository = async (id: string, clientId: number,
 
       let res = await dbClient.query<OrderStatus>(query);
 
-      let query1 = {
+      let query1: QueryConfig = {
         name: 'create-order',
         text: 'INSERT INTO pedido (id, id_cliente, id_metodo_envio, id_opcion_envio, id_opcion_pago, total, id_direccion, id_estado_pedido) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
         values: [ id, clientId, shippingMethodId, shippingOptionId, paymentOptionId, total, addressId, res.rows[0]?.id ]

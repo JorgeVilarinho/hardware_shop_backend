@@ -3,6 +3,7 @@ import { createOrderRepository, getPaymentOptionsRepository, getShippingMethodsR
 import { createOrderId } from '../helpers/checkout.js';
 import type { ProcessCheckoutRequest } from '../requests/processCheckoutRequest.js';
 import { getClientByIdRepository } from '../db/users.js';
+import { sendMail } from '../helpers/mailer.js';
 
 export const getShippingMethods = async (_: express.Request, res: express.Response) => {
   try {
@@ -48,6 +49,18 @@ export const processCheckout = async (req: ProcessCheckoutRequest, res: express.
 
     const order = await createOrderRepository(id, client.id, shippingMethod.id, shippingOption?.id ?? null, 
       paymentOption.id, total, address?.id ?? null, products)
+
+    let to = client.email
+    let subject = `[${order?.id}], Pedido pendiente en ByteShop. Total ${order?.total.toFixed(2)} €`
+    let html = `<h1>Gracias por realizar el pedido.</h1>
+    <p>Te agradecemos la confianza en nuestra tienda.</p>
+    <p>Número de pedido: ${order?.id}</p>
+    <p>Forma de envío: ${shippingOption?.descripcion}</p>
+    <p>Forma de pago: ${paymentOption.descripcion}</p>
+    <p>Coste de envío: ${shippingOption?.coste} €</p>
+    <p>Total: ${order?.total.toFixed(2)} €</p>`
+
+    sendMail(to, subject, html)
 
     res.status(200).json({ order })
   } catch (error) {

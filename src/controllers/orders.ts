@@ -1,5 +1,9 @@
 import express from 'express'
 import { cancelOrderRepository, getActiveOrdersRepository, getCanceledOrdersRepository, getOrderFromRepository, getProductsFromOrderRepository, getSippingOptionCostRepository, updateOrderPaymentRepository } from '../db/orders.js'
+import { getClientByIdRepository } from '../db/users.js'
+import { sendMail } from '../helpers/mailer.js'
+import { getShippingMethodByIdRepository, getShippingMethodsRepository } from '../db/checkout.js'
+import { ShippingMethodValue } from '../models/shippingMethodValue.js'
 
 export const getActiveOrders = async (_: express.Request, res: express.Response) => {
   try {
@@ -63,6 +67,14 @@ export const getShippingOptionCost = async (req: express.Request, res: express.R
 export const processOrderPayment = async (req: express.Request, res: express.Response) => {
   try {
     const { orderId } = req.params
+    const { authenticatedUser } = req.body
+
+    const client = await getClientByIdRepository(authenticatedUser.id)
+
+    if(!client) {
+      res.status(400).json({ message: 'El cliente no existe' })
+      return
+    }
 
     if(!orderId) {
       res.status(400).json({ message: 'Se necesita enviar el id del pedido para realizar el pago del pedido' })
@@ -70,6 +82,22 @@ export const processOrderPayment = async (req: express.Request, res: express.Res
     }
 
     const order = await updateOrderPaymentRepository(orderId)
+
+    const shippingMethod = await getShippingMethodByIdRepository(order.id_metodo_envio)
+
+    let to = client.email
+    let subject = `[${order?.id}], Pedido pagado con éxito. Total ${order?.total.toFixed(2)} €`
+    let html = `<h1>Gracias por realizar la compra de su pedido.</h1>
+    <p>Te agradecemos la confianza en nuestra tienda.</p>
+    <p>Número de pedido: ${order?.id}</p>
+    <p>Total: ${order?.total.toFixed(2)} €</p>`
+    if(shippingMethod?.valor == ShippingMethodValue.HOME_DELIVERY) {
+      html += `<h2>Se le notificará cuando su pedido esté en proceso de envío</h2>`
+    } else {
+      html += `<h2>El producto ya está preparado para ser recogido en la tienda</h2>`
+    }
+    
+    sendMail(to, subject, html)
 
     res.status(200).json({ order })
   } catch (error) {
@@ -80,6 +108,14 @@ export const processOrderPayment = async (req: express.Request, res: express.Res
 export const cancelOrder = async (req: express.Request, res: express.Response) => {
   try {
     const { orderId } = req.params
+    const { authenticatedUser } = req.body
+
+    const client = await getClientByIdRepository(authenticatedUser.id)
+
+    if(!client) {
+      res.status(400).json({ message: 'El cliente no existe' })
+      return
+    }
 
     if(!orderId) {
       res.status(400).json({ message: 'Se necesita enviar el id del pedido para realizar la cancelación del pedido' })
@@ -89,6 +125,15 @@ export const cancelOrder = async (req: express.Request, res: express.Response) =
     await cancelOrderRepository(orderId)
 
     const order = await getOrderFromRepository(orderId)
+
+    let to = client.email
+    let subject = `[${order?.id}], Pedido cancelado. Total ${order?.total.toFixed(2)} €`
+    let html = `<h1>Su pedido ha sido cancelado</h1>
+    <p>Te informamos que tu pedido ha sido cancelado, y no será enviado. Si se ha producido algún pago, este será devuelto.</p>
+    <p>Gracias por su confianza.</p>
+    <p>Número de pedido: ${order?.id}</p>`
+    
+    sendMail(to, subject, html)
 
     res.status(200).json({ order })
   } catch (error) {
