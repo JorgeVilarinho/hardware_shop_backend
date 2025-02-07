@@ -1,15 +1,15 @@
-import type { Query, QueryConfig } from "pg";
+import type { QueryConfig } from "pg";
 import { pool } from "../db.js"
 import type { OrderRepository } from "../models/orderRepository.js";
 import type { OrderStatus } from "../models/orderStatus.model.js";
-import { OrderStatusValue } from "../models/orderStatusValue.model.js";
+import { OrderStatusValue } from "../models/types/orderStatusValue.model.js";
 import type { Product } from "../models/product.js";
 import type { ShippingMethod } from "../models/shippingMethod.js";
 import type { ShippingOption } from "../models/shippingOption.js";
 import type { PaymentOption } from "../models/paymentOption.js";
 
 export const getShippingMethodsRepository = async () => {
-  const query = {
+  const query: QueryConfig = {
     name: 'get-all-shipping-methods',
     text: `SELECT * FROM metodo_envio ORDER BY id`
   };

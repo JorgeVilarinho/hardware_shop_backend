@@ -1,4 +1,4 @@
-import type { OrderStatusValue } from "./orderStatusValue.model.js";
+import type { OrderStatusValue } from "./types/orderStatusValue.model.js";
 
 export interface OrderStatus {
   id: number,

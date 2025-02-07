@@ -1,4 +1,4 @@
-import type { UserType } from "./userType.js";
+import type { UserType } from "./types/userType.js";
 
 export interface TokenData {
   id: number,

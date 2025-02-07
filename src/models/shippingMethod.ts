@@ -1,4 +1,4 @@
-import type { ShippingMethodValue } from "./shippingMethodValue.js";
+import type { ShippingMethodValue } from "./types/shippingMethodValue.js";
 
 export interface ShippingMethod {
   id: number,

@@ -1,4 +1,4 @@
-import type { PaymentOptionValue } from "./paymentOptionValue.js";
+import type { PaymentOptionValue } from "./types/paymentOptionValue.js";
 
 export interface PaymentOption {
   id: number,

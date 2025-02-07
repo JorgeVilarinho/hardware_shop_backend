@@ -1,4 +1,4 @@
-import type { ShippingOptionValue } from "./shippingOptionValue.js";
+import type { ShippingOptionValue } from "./types/shippingOptionValue.js";
 
 export interface ShippingOption {
   id: number,

@@ -1,5 +1,5 @@
 import { pool } from "../db.js";
-import { OrderBy } from "../models/orderBy.js";
+import { OrderBy } from "../models/types/orderBy.js";
 import type { Product } from "../models/product.js";
 
 export const getAllProductsRepository = async () => {

@@ -2,9 +2,10 @@ import type { User } from "../models/user.js";
 import { pool } from "./../db.js";
 import type { Client } from "../models/client.js";
 import type { Address } from "../models/address.js";
-import { UserType } from "../models/userType.js";
+import { UserType } from "../models/types/userType.js";
 import type { QueryConfig } from "pg";
 import type { Employee } from "../models/employee.js";
+import type { EmployeeData } from "../models/employeeData.js";
 
 export const getUserByEmailRepository = async (email: string): Promise<User | undefined> => {
   const query = {
@@ -117,18 +118,19 @@ export const getUserTypeRepository = async (id: number) => {
   return undefined;
 }
 
-export const getAdminFlagRepository = async (id: number) => {
+export const getEmployeeDataRepository = async (id: number) => {
   let query = {
-    name: 'get-admin-flag',
-    text: `SELECT admin 
-    FROM trabajador
-    WHERE user_id = $1`,
+    name: 'get-employee-data',
+    text: `SELECT admin, tt.valor
+          FROM trabajador t
+          JOIN tipo_trabajador tt ON t.tipo_trabajador = tt.id
+          WHERE user_id = $1`,
     values: [ id ]
   };
 
-  let res = await pool.query(query);
+  let res = await pool.query<EmployeeData>(query);
   
-  if(res.rowCount! > 0) return res.rows[0].admin
+  if(res.rowCount! > 0) return res.rows[0]
 }
 
 export const getClientByIdRepository = async (id: number) => {

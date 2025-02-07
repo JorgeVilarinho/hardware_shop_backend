@@ -3,7 +3,7 @@ import { cancelOrderRepository, getActiveOrdersRepository, getCanceledOrdersRepo
 import { getClientByIdRepository } from '../db/users.js'
 import { sendMail } from '../helpers/mailer.js'
 import { getShippingMethodByIdRepository, getShippingMethodsRepository } from '../db/checkout.js'
-import { ShippingMethodValue } from '../models/shippingMethodValue.js'
+import { ShippingMethodValue } from '../models/types/shippingMethodValue.js'
 
 export const getActiveOrders = async (_: express.Request, res: express.Response) => {
   try {

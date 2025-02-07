@@ -1,6 +1,6 @@
 import type { QueryConfig } from "pg";
 import { pool } from "../db.js";
-import { OrderStatusValue } from "../models/orderStatusValue.model.js";
+import { OrderStatusValue } from "../models/types/orderStatusValue.model.js";
 import type { Order } from "../models/order.js";
 import type { Product } from "../models/product.js";
 import type { ShippingOption } from "../models/shippingOption.js";

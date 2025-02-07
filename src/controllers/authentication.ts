@@ -1,12 +1,13 @@
-import { createClientRepository, getAdminFlagRepository, getClientByIdRepository, 
+import { createClientRepository, getEmployeeDataRepository, getClientByIdRepository, 
   getEmployeeByIdRepository, getUserByEmailRepository, getUserTypeRepository } from '../db/users.js';
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET, SALT_ROUNDS } from '../config.js';
-import { UserType } from '../models/userType.js';
+import { UserType } from '../models/types/userType.js';
 import type { TokenData } from '../models/tokenData.js';
 import type { User } from '../models/user.js';
+import type { EmployeeData } from '../models/employeeData.js';
 
 export const register = async (req: express.Request, res: express.Response) => {
   try {
@@ -37,7 +38,7 @@ export const login = async (req: express.Request, res: express.Response) => {
   try {
     const { email, password } = req.body
 
-    let admin = false
+    let employeeData: EmployeeData | undefined
 
     if(!email || !password) {
       res.status(400).json({ message: 'Error al introducir los datos.' });
@@ -65,7 +66,9 @@ export const login = async (req: express.Request, res: express.Response) => {
       return;
     }
 
-    if(userType == UserType.EMPLOYEE) admin = await getAdminFlagRepository(user.id)
+    if(userType == UserType.EMPLOYEE) {
+      employeeData = await getEmployeeDataRepository(user.id)
+    }
 
     const token = jwt.sign(
       { id: user.id, user: user.email, userType }, 
@@ -87,7 +90,8 @@ export const login = async (req: express.Request, res: express.Response) => {
         dni: user.dni,
         phone: user.phone,
         userType,
-        admin
+        admin: employeeData?.admin,
+        tipo_trabajador: employeeData?.tipo_trabajador
       }
     )
   } catch(error) {
