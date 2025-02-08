@@ -1,5 +1,8 @@
+import type { UserType } from "./types/userType.js";
+
 export interface User {
-  id: number,
+  user_id: number,
+  kind?: UserType
   name: string,
   email: string, 
   password: string,

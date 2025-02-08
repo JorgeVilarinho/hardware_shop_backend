@@ -18,7 +18,7 @@ export const getUserByEmailRepository = async (email: string): Promise<User | un
   
   if(res.rowCount! > 0) {
     const user: User = {
-      id: res.rows[0].id,
+      user_id: res.rows[0].id,
       name: res.rows[0].name,
       email: res.rows[0].email,
       password: res.rows[0].password,
@@ -43,7 +43,7 @@ export const getUserByDniRepository = async (dni: string): Promise<User | undefi
   
   if(res.rowCount! > 0) {
     const user: User = {
-      id: res.rows[0].id,
+      user_id: res.rows[0].id,
       name: res.rows[0].name,
       email: res.rows[0].email,
       password: res.rows[0].password,
@@ -68,7 +68,7 @@ export const getUserByIdRepository = async (id: number): Promise<User | undefine
   
   if(res.rowCount! > 0) {
     const user: User = {
-      id: res.rows[0].id,
+      user_id: res.rows[0].id,
       name: res.rows[0].name,
       email: res.rows[0].email,
       password: res.rows[0].password,
@@ -82,7 +82,7 @@ export const getUserByIdRepository = async (id: number): Promise<User | undefine
   return undefined;
 }
 
-export const getUserTypeRepository = async (id: number) => {
+export const getUserTypeRepository = async (user_id: number) => {
   let queryCommand = `
     SELECT *
     FROM cliente 
@@ -92,7 +92,7 @@ export const getUserTypeRepository = async (id: number) => {
   let query = {
     name: 'get-client-by-user-id',
     text: queryCommand,
-    values: [ id ]
+    values: [ user_id ]
   };
 
   let res = await pool.query(query);
@@ -108,7 +108,7 @@ export const getUserTypeRepository = async (id: number) => {
   query = {
     name: 'get-employee-by-user-id',
     text: queryCommand,
-    values: [ id ]
+    values: [ user_id ]
   };
 
   res = await pool.query(query);
@@ -118,14 +118,15 @@ export const getUserTypeRepository = async (id: number) => {
   return undefined;
 }
 
-export const getEmployeeDataRepository = async (id: number) => {
+export const getEmployeeDataRepository = async (user_id: number) => {
   let query = {
     name: 'get-employee-data',
-    text: `SELECT admin, tt.valor
+    text: `SELECT admin, tt.valor AS tipo_trabajador, 
+          tt.descripcion tipo_trabajador_desc
           FROM trabajador t
           JOIN tipo_trabajador tt ON t.tipo_trabajador = tt.id
           WHERE user_id = $1`,
-    values: [ id ]
+    values: [ user_id ]
   };
 
   let res = await pool.query<EmployeeData>(query);
@@ -133,9 +134,9 @@ export const getEmployeeDataRepository = async (id: number) => {
   if(res.rowCount! > 0) return res.rows[0]
 }
 
-export const getClientByIdRepository = async (id: number) => {
+export const getClientByIdRepository = async (user_id: number) => {
   const queryCommand = `
-    SELECT c.id, u.name, u.email, u.password, u.dni, u.phone
+    SELECT u.id AS user_id, c.id, u.name, u.email, u.password, u.dni, u.phone
     FROM usuario AS u 
     JOIN cliente AS c ON c.user_id = u.id
     WHERE u.id = $1;
@@ -144,7 +145,7 @@ export const getClientByIdRepository = async (id: number) => {
   const query: QueryConfig = {
     name: 'get-client-by-id',
     text: queryCommand,
-    values: [ id ]
+    values: [ user_id ]
   };
 
   const res = await pool.query<Client>(query)
@@ -154,15 +155,16 @@ export const getClientByIdRepository = async (id: number) => {
   return undefined
 }
 
-export const getEmployeeByIdRepository = async (id: number) => {
+export const getEmployeeByIdRepository = async (user_id: number) => {
   const query: QueryConfig = {
     name: 'get-employee-by-id',
-    text: `SELECT t.id, u.name, u.email, u.password, u.dni, u.phone, tt.valor AS tipo_trabajador, t.admin
+    text: `SELECT u.id AS user_id, t.id, u.name, u.email, u.password, u.dni, u.phone, t.admin, 
+          tt.valor AS tipo_trabajador, tt.descripcion AS tipo_trabajador_desc  
           FROM usuario u 
           JOIN trabajador t ON t.user_id = u.id
           JOIN tipo_trabajador tt ON t.tipo_trabajador = tt.id
           WHERE u.id = $1;`,
-    values: [ id ]
+    values: [ user_id ]
   }
 
   const res = await pool.query<Employee>(query)
@@ -210,22 +212,22 @@ export const createClientRepository = async (name: string, email: string, passwo
   }
 }
 
-export const updateUserDataRepository = async (id: number, name: string, dni: string, email: string, phone: string) => {
+export const updateUserDataRepository = async (user_id: number, name: string, dni: string, email: string, phone: string) => {
   const query = {
     name: 'update-user-data',
     text: 'UPDATE usuario SET name = $1, dni = $2, email = $3, phone = $4 WHERE id = $5; ',
-    values: [ name, dni, email, phone, id ]
+    values: [ name, dni, email, phone, user_id ]
   };
 
   const res = await pool.query(query)
   return res.rowCount! > 0;
 }
 
-export const updateUserPasswordRepository = async (id: number, password: string) => {
+export const updateUserPasswordRepository = async (user_id: number, password: string) => {
   const query = {
     name: 'update-user-password',
     text: 'UPDATE usuario SET password = $1 WHERE id = $2; ',
-    values: [ password, id ]
+    values: [ password, user_id ]
   };
 
   const res = await pool.query(query)

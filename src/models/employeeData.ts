@@ -1,6 +1,7 @@
-import type { EmployeeType } from "./types/employeeType.js";
+import type { EmployeeTypeValue } from "./types/employeeTypeValue.js";
 
 export interface EmployeeData {
   admin: boolean,
-  tipo_trabajador: EmployeeType
+  tipo_trabajador: EmployeeTypeValue,
+  tipo_trabajador_desc: string
 }

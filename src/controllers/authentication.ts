@@ -59,7 +59,7 @@ export const login = async (req: express.Request, res: express.Response) => {
       return;
     }
 
-    const userType = await getUserTypeRepository(user.id);
+    const userType = await getUserTypeRepository(user.user_id);
 
     if(!userType) {
       res.status(400).json({ message: 'Error con el tipo de usuario.' });
@@ -67,11 +67,13 @@ export const login = async (req: express.Request, res: express.Response) => {
     }
 
     if(userType == UserType.EMPLOYEE) {
-      employeeData = await getEmployeeDataRepository(user.id)
+      employeeData = await getEmployeeDataRepository(user.user_id)
     }
 
+    let admin = userType == UserType.EMPLOYEE && employeeData?.admin
+
     const token = jwt.sign(
-      { id: user.id, user: user.email, userType }, 
+      { id: user.user_id, user: user.email, userType, admin }, 
       JWT_SECRET,
       {
         expiresIn: '1h'
@@ -85,13 +87,15 @@ export const login = async (req: express.Request, res: express.Response) => {
     })
     .status(200)
     .json({
+        user_id: user.user_id,
+        kind: userType,
         name: user.name,
         email: user.email,
         dni: user.dni,
         phone: user.phone,
-        userType,
         admin: employeeData?.admin,
-        tipo_trabajador: employeeData?.tipo_trabajador
+        tipo_trabajador: employeeData?.tipo_trabajador,
+        tipo_trabajador_desc: employeeData?.tipo_trabajador_desc
       }
     )
   } catch(error) {

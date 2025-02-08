@@ -1,6 +1,7 @@
 import { JWT_SECRET } from '../config.js';
 import express from 'express'
 import jwt from 'jsonwebtoken'
+import type { AuthenticatedUser } from '../models/authenticatedUser.js';
 
 export const isAuthenticated = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
@@ -14,6 +15,21 @@ export const isAuthenticated = async (req: express.Request, res: express.Respons
     const data = jwt.verify(access_token, JWT_SECRET);
 
     req.body.authenticatedUser = data
+    next()
+  } catch(error) {
+    res.status(500).end()
+  }
+}
+
+export const isAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  try {
+    const authenticatedUser = req.body.authenticatedUser as AuthenticatedUser;
+
+    if(!authenticatedUser.admin) {
+      res.status(403).json({ message: 'No se puede realizar esta acción' })
+      return
+    }
+
     next()
   } catch(error) {
     res.status(500).end()

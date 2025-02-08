@@ -1,4 +1,4 @@
-import type { EmployeeTypeValue } from "./types/employeeTypevalue.js";
+import type { EmployeeTypeValue } from "./types/employeeTypeValue.js";
 
 export interface EmployeeType {
   id: number,

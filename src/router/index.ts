@@ -7,6 +7,7 @@ import categories from './categories.js';
 import brands from './brands.js';
 import checkout from './checkout.js';
 import orders from './orders.js';
+import employees from './employees.js';
 
 const router = Router();
 
@@ -19,6 +20,7 @@ export default (): express.Router => {
   brands(router);
   checkout(router);
   orders(router)
+  employees(router)
   
   return router;
 }
