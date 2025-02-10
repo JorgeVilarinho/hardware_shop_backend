@@ -35,3 +35,20 @@ export const isAdmin = async (req: express.Request, res: express.Response, next:
     res.status(500).end()
   }
 }
+
+export const isAdminOrOwner = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  try {
+    const authenticatedUser = req.body.authenticatedUser as AuthenticatedUser;
+
+    let isOwner = authenticatedUser.id == req.body.userId
+
+    if(!authenticatedUser.admin && !isOwner) {
+      res.status(403).json({ message: 'No se puede realizar esta acción' })
+      return
+    }
+
+    next()
+  } catch(error) {
+    res.status(500).end()
+  }
+}

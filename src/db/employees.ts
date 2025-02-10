@@ -18,16 +18,16 @@ export const getEmployeesRepository = async () => {
   return res.rows
 }
 
-export const getEmployeeByIdRespository = async (employee_id: number) => {
+export const getEmployeeByIdRepository = async (employeeId: string) => {
   let query: QueryConfig = {
     name: 'get-employees-by-id',
-    text: `SELECT u.id AS user_id, 'employee' AS kind, u.name, u.email, u.dni, u.phone, 
+    text: `SELECT u.id AS user_id, 'employee' AS kind, u.name, u.email, u.dni, u.phone, u.password, 
           t.id, t.admin, tt.valor AS tipo_trabajador, tt.descripcion AS tipo_trabajador_desc
           FROM trabajador t
           JOIN usuario u ON t.user_id = u.id
           JOIN tipo_trabajador tt ON t.tipo_trabajador = tt.id
           WHERE t.id = $1`,
-    values: [ employee_id ]
+    values: [ employeeId ]
   }
 
   let res = await pool.query<Employee>(query)
@@ -112,6 +112,65 @@ export const createEmployeeRepository = async (
       text: 'INSERT INTO trabajador (user_id, admin, tipo_trabajador) VALUES ($1, $2, $3) RETURNING id',
       values: [ res.rows[0].id, admin, res1.rows[0]?.id ]
     };
+
+    await dbClient.query(query)
+
+    await dbClient.query('COMMIT')
+  } catch (error) {
+    await dbClient.query('ROLLBACK')
+    throw error
+  } finally {
+    dbClient.release()
+  }
+}
+
+export const updateEmployeeByIdRepository = async (
+  employeeId: string,
+  userId: string,
+  fullName: string,
+  dni: string,
+  email: string,
+  phone: string,
+  hashedPassword: string | undefined,
+  admin: boolean,
+  employeeType: string
+) => {
+  const dbClient = await pool.connect();
+
+  try {
+    await dbClient.query('BEGIN')
+
+    let query: QueryConfig
+
+    if(hashedPassword) {
+      query = {
+        name: 'update-user-with-password-by-id',
+        text: `UPDATE usuario SET name = $1, dni = $2, email = $3, phone = $4, password = $5 WHERE id = $6`,
+        values: [ fullName, dni, email, phone, hashedPassword, userId ]
+      };
+    } else {
+      query = {
+        name: 'update-user-without-password-by-id',
+        text: `UPDATE usuario SET name = $1, dni = $2, email = $3, phone = $4 WHERE id = $5`,
+        values: [ fullName, dni, email, phone, userId ]
+      };
+    }  
+  
+    await dbClient.query(query);
+
+    query = {
+      name: 'get-employee-type',
+      text: `SELECT * FROM tipo_trabajador WHERE valor = $1`,
+      values: [ employeeType ]
+    }
+
+    let res = await dbClient.query<EmployeeType>(query)
+
+    query = {
+      name: 'update-employee-by-id',
+      text: `UPDATE trabajador SET admin = $1, tipo_trabajador = $2 WHERE id = $3`,
+      values: [ admin as unknown as string, res.rows[0]?.id as unknown as string, employeeId ]
+    }
 
     await dbClient.query(query)
 
