@@ -5,18 +5,21 @@ import type { Order } from "../models/order.js";
 import type { Product } from "../models/product.js";
 import type { ShippingOption } from "../models/shippingOption.js";
 import type { OrderStatus } from "../models/orderStatus.model.js";
+import { ShippingMethodValue } from "../models/types/shippingMethodValue.js";
+import type { ShippingMethod } from "../models/shippingMethod.js";
 
-export const getActiveOrdersRepository = async () => {
+export const getClientActiveOrdersRepository = async (clientId: number) => {
   let query: QueryConfig = {
-    name: 'get-active-orders',
+    name: 'get-client-active-orders',
     text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
           id_opcion_envio, fecha_creacion, total, id_direccion, 
           ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
           FROM pedido p
           JOIN estado_pedido ep 
           ON p.id_estado_pedido = ep.id
-          WHERE ep.valor != $1`,
-    values: [ OrderStatusValue.CANCELED ]
+          WHERE ep.valor != $1
+          AND p.id_cliente = $2`,
+    values: [ OrderStatusValue.CANCELED, clientId ]
   }
 
   let res1 = await pool.query<Order>(query);
@@ -44,7 +47,7 @@ export const getActiveOrdersRepository = async () => {
   return res1.rows;
 }
 
-export const getCanceledOrdersRepository = async () => {
+export const getClientCanceledOrdersRepository = async (clientId: number) => {
   let query: QueryConfig = {
     name: 'get-canceled-orders',
     text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
@@ -53,8 +56,9 @@ export const getCanceledOrdersRepository = async () => {
           FROM pedido p
           JOIN estado_pedido ep 
           ON p.id_estado_pedido = ep.id
-          WHERE ep.valor = $1`,
-    values: [ OrderStatusValue.CANCELED ]
+          WHERE ep.valor = $1
+          AND p.id_cliente = $2`,
+    values: [ OrderStatusValue.CANCELED, clientId ]
   }
 
   let res1 = await pool.query<Order>(query);
@@ -80,6 +84,79 @@ export const getCanceledOrdersRepository = async () => {
   }
 
   return res1.rows;
+}
+
+export const getOrderStatusByValueRepository = async (orderStatusValue: OrderStatusValue) => {
+  let query: QueryConfig = {
+    name: 'get-orders-status-by-value',
+    text: `SELECT * 
+          FROM estado_pedido ep
+          WHERE ep.valor = $1`,
+    values: [ orderStatusValue ]
+  }
+
+  let res = await pool.query<OrderStatus>(query);
+
+  return res.rows[0]
+}
+
+export const getShippingMethodByValueRepository = async (shippingMethodValue: ShippingMethodValue) => {
+  let query: QueryConfig = {
+    name: 'get-shipping-method-by-value',
+    text: `SELECT * 
+          FROM metodo_envio 
+          WHERE valor = $1`,
+    values: [ shippingMethodValue ]
+  }
+
+  let res = await pool.query<ShippingMethod>(query);
+
+  return res.rows[0]
+}
+
+export const getUnassignedOrdersRepository = async () => {
+  const orderStatus = await getOrderStatusByValueRepository(OrderStatusValue.PAID)
+
+  const shippingMethod = await getShippingMethodByValueRepository(ShippingMethodValue.HOME_DELIVERY)
+
+  let query: QueryConfig = {
+    name: 'get-unassigned-orders',
+    text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
+          id_opcion_envio, fecha_creacion, total, id_direccion, 
+          ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
+          FROM pedido p
+          JOIN estado_pedido ep 
+          ON p.id_estado_pedido = ep.id
+          WHERE ep.id = $1
+          AND id_metodo_envio = $2
+          AND id_trabajador IS NULL
+          ORDER BY fecha_creacion`,
+    values: [ orderStatus?.id, shippingMethod?.id ]
+  }
+
+  let res = await pool.query<Order>(query);
+
+  for (let i = 0; i < res.rows.length; i++) {
+    const unassignedOrder = res.rows[i];
+    
+    query = {
+      name: 'get-first-product-image',
+      text: `SELECT image_name AS imagen
+            FROM pedido_producto pp
+            JOIN pedido p 
+            ON pp.id_pedido = p.id
+            JOIN producto pro
+            ON pp.id_producto = pro.id
+            WHERE p.id = $1
+            LIMIT 1`,
+      values: [ unassignedOrder?.id ]
+    }
+
+    let res1 = await pool.query<any>(query)
+    unassignedOrder!.imagen = res1.rows[0]?.imagen
+  }
+
+  return res.rows
 }
 
 export const getOrderFromRepository = async (orderId: string) => {

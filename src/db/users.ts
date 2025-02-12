@@ -136,7 +136,7 @@ export const getEmployeeDataRepository = async (user_id: number) => {
 
 export const getClientByIdRepository = async (user_id: number) => {
   const queryCommand = `
-    SELECT u.id AS user_id, c.id, u.name, u.email, u.password, u.dni, u.phone
+    SELECT u.id AS user_id, 'client' AS kind, c.id, u.name, u.email, u.password, u.dni, u.phone
     FROM usuario AS u 
     JOIN cliente AS c ON c.user_id = u.id
     WHERE u.id = $1;
@@ -158,7 +158,7 @@ export const getClientByIdRepository = async (user_id: number) => {
 export const getEmployeeByIdRepository = async (user_id: number) => {
   const query: QueryConfig = {
     name: 'get-employee-by-id',
-    text: `SELECT u.id AS user_id, t.id, u.name, u.email, u.password, u.dni, u.phone, t.admin, 
+    text: `SELECT u.id AS user_id, 'employee' AS kind, t.id, u.name, u.email, u.password, u.dni, u.phone, t.admin, 
           tt.valor AS tipo_trabajador, tt.descripcion AS tipo_trabajador_desc  
           FROM usuario u 
           JOIN trabajador t ON t.user_id = u.id

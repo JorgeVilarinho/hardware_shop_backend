@@ -182,3 +182,35 @@ export const updateEmployeeByIdRepository = async (
     dbClient.release()
   }
 }
+
+export const getEmployeesOrderedByLessAssignedOrdersRepository = async () => {
+  let query: QueryConfig = {
+    name: 'get-employees-ordered-by-less-assigned-orders',
+    text: `SELECT u.id AS user_id, 'employee' AS kind, u.name, u.email, u.dni, u.phone, 
+          t.id, t.admin, tt.valor AS tipo_trabajador, tt.descripcion AS tipo_trabajador_desc
+          FROM (SELECT t.user_id, t.id, t.admin, t.tipo_trabajador, count(p.id_trabajador)
+          FROM trabajador t
+          LEFT JOIN pedido p ON p.id_trabajador = t.id
+          GROUP BY t.id
+          ORDER BY count) AS t
+          JOIN usuario u ON t.user_id = u.id
+          JOIN tipo_trabajador tt ON t.tipo_trabajador = tt.id
+          ORDER BY t.count, u.name`
+  }
+
+  let res = await pool.query<Employee>(query)
+
+  return res.rows
+}
+
+export const assignEmployeeToOrderRepository = async (orderId: number, employeeId: number) => {
+  let query: QueryConfig = {
+    name: 'assign-employee-to-order',
+    text: `UPDATE pedido SET id_trabajador = $1 WHERE id = $2`,
+    values: [ employeeId, orderId ]
+  }
+
+  let res = await pool.query(query)
+
+  return res.rowCount! > 0
+}

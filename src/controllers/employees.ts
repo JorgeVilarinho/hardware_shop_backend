@@ -1,16 +1,37 @@
 import express from 'express'
 import bcrypt from 'bcrypt'
-import { createEmployeeRepository, deleteEmployeeRepository, getEmployeeByIdRepository, getEmployeesRepository, getEmployeeTypesRepository, updateEmployeeByIdRepository } from '../db/employees.js'
+import { assignEmployeeToOrderRepository, createEmployeeRepository, deleteEmployeeRepository, getEmployeeByIdRepository, getEmployeesOrderedByLessAssignedOrdersRepository, getEmployeesRepository, getEmployeeTypesRepository, updateEmployeeByIdRepository } from '../db/employees.js'
 import type { CreateEmployeeRequest } from '../requests/createEmployeeRequest.js'
 import { getUserByDniRepository, getUserByEmailRepository, getUserByIdRepository } from '../db/users.js'
 import { SALT_ROUNDS } from '../config.js'
+import { EmployeesOrderBy } from '../models/types/employeesOrderBy.js'
+import type { Employee } from '../models/employee.js'
+import type { AssignEmployeeToOrderRequest } from '../requests/assignEmployeeToOrderRequest.js'
 
-export const getEmployees = async (_: express.Request, res: express.Response) => {
+export const getEmployees = async (req: express.Request, res: express.Response) => {
   try {
-    const employees = await getEmployeesRepository()
+    const orderBy = req.query.orderBy
+
+    let employees: Employee[] | undefined
+
+    if(orderBy == EmployeesOrderBy.LESS_ASSIGNED) {
+      employees = await getEmployeesOrderedByLessAssignedOrdersRepository()
+    } else {
+      employees = await getEmployeesRepository()
+    }
 
     res.status(200).json({ employees })
   } catch(error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
+
+export const getEmployeesOrderedByLessAssignedOrders = async (req: express.Request, res: express.Response) => {
+  try {
+    const employees = await getEmployeesOrderedByLessAssignedOrdersRepository()
+
+    res.status(200).json({ employees })
+  } catch (error) {
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
@@ -27,7 +48,6 @@ export const deleteEmployee = async (req: express.Request, res: express.Response
     await deleteEmployeeRepository(userId)
     res.status(200).end()
   } catch(error) {
-    console.log(error)
     res.status(500).json({ message: 'No se ha podido eliminar el trabajador.' })
   }
 }
@@ -141,5 +161,22 @@ export const getEmployeeById = async (req: express.Request, res: express.Respons
     res.status(200).json({ employee })
   } catch (error) {
     res.status(500).json({ message: 'No se ha podido devolver el trabajador.' })
+  }
+}
+
+export const assignEmployeeToOrder = async (req: AssignEmployeeToOrderRequest, res: express.Response) => {
+  try {
+    const { orderId, employeeId } = req.body
+
+    const ok = await assignEmployeeToOrderRepository(orderId, employeeId)
+
+    if(!ok) {
+      res.status(400).json({ message: 'No se ha podido asignar el trabajador al pedido' })
+      return
+    }
+
+    res.status(200).end()
+  } catch (error) {
+    res.status(500).json({ message: 'No se ha podido asignar el trabajador al pedido.' })
   }
 }

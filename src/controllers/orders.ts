@@ -1,13 +1,23 @@
 import express from 'express'
-import { cancelOrderRepository, getActiveOrdersRepository, getCanceledOrdersRepository, getOrderFromRepository, getProductsFromOrderRepository, getSippingOptionCostRepository, updateOrderPaymentRepository } from '../db/orders.js'
+import { cancelOrderRepository, getClientCanceledOrdersRepository, getClientActiveOrdersRepository, getOrderFromRepository, getProductsFromOrderRepository, getSippingOptionCostRepository, updateOrderPaymentRepository, getUnassignedOrdersRepository } from '../db/orders.js'
 import { getClientByIdRepository } from '../db/users.js'
 import { sendMail } from '../helpers/mailer.js'
-import { getShippingMethodByIdRepository, getShippingMethodsRepository } from '../db/checkout.js'
+import { getShippingMethodByIdRepository } from '../db/checkout.js'
 import { ShippingMethodValue } from '../models/types/shippingMethodValue.js'
+import type { AuthenticatedUser } from '../models/authenticatedUser.js'
 
-export const getActiveOrders = async (_: express.Request, res: express.Response) => {
+export const getClientActiveOrders = async (req: express.Request, res: express.Response) => {
   try {
-    const orders = await getActiveOrdersRepository()
+    const authenticatedUser = req.body.authenticatedUser as AuthenticatedUser
+
+    const client = await getClientByIdRepository(authenticatedUser.id)
+
+    if(!client) {
+      res.status(400).json({ message: 'No se ha encontrado el cliente' })
+      return
+    }
+
+    const orders = await getClientActiveOrdersRepository(client.id)
 
     res.status(200).json({ orders })
   } catch (error) {
@@ -15,13 +25,32 @@ export const getActiveOrders = async (_: express.Request, res: express.Response)
   }
 }
 
-export const getCanceledOrders = async (_: express.Request, res: express.Response) => {
+export const getClientCanceledOrders = async (req: express.Request, res: express.Response) => {
   try {
-    const orders = await getCanceledOrdersRepository()
+    const authenticatedUser = req.body.authenticatedUser as AuthenticatedUser
+
+    const client = await getClientByIdRepository(authenticatedUser.id)
+
+    if(!client) {
+      res.status(400).json({ message: 'No se ha encontrado el cliente' })
+      return
+    }
+
+    const orders = await getClientCanceledOrdersRepository(client.id)
 
     res.status(200).json({ orders })
   } catch (error) {
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
+
+export const getUnassignedOrders = async (req: express.Request, res: express.Response) => {
+  try {
+    const orders = await getUnassignedOrdersRepository()
+
+    res.status(200).json({ orders })
+  } catch (error) {
+    res.status(500).json({ message: 'No se ha podido devolver los pedidos no asignados' })
   }
 }
 
