@@ -159,6 +159,56 @@ export const getUnassignedOrdersRepository = async () => {
   return res.rows
 }
 
+export const getAssignedOrdersToEmployeeRepository = async (employeeId: string) => {
+  let query: QueryConfig = {
+    name: 'get-assigned-orders',
+    text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
+          id_opcion_envio, fecha_creacion, total, id_direccion, 
+          ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
+          FROM pedido p
+          JOIN estado_pedido ep 
+          ON p.id_estado_pedido = ep.id
+          WHERE id_trabajador = $1
+          AND ep.valor NOT IN ('in-shipping')
+          ORDER BY fecha_creacion`,
+    values: [ employeeId ]
+  }
+
+  let res = await pool.query<Order>(query);
+
+  for (let i = 0; i < res.rows.length; i++) {
+    const assignedOrder = res.rows[i];
+    
+    query = {
+      name: 'get-first-product-image',
+      text: `SELECT image_name AS imagen
+            FROM pedido_producto pp
+            JOIN pedido p 
+            ON pp.id_pedido = p.id
+            JOIN producto pro
+            ON pp.id_producto = pro.id
+            WHERE p.id = $1
+            LIMIT 1`,
+      values: [ assignedOrder?.id ]
+    }
+
+    let res1 = await pool.query<any>(query)
+    assignedOrder!.imagen = res1.rows[0]?.imagen
+  }
+
+  return res.rows
+}
+
+export const updateOrderStatusByEmployeeRepository = async (order: Order, orderStatus: OrderStatus) => {
+  let query: QueryConfig = {
+    name: 'update-order-status-by-employee',
+    text: `UPDATE pedido SET id_estado_pedido = $1 WHERE id = $2`,
+    values: [ orderStatus.id, order.id ]
+  }
+
+  await pool.query(query);
+}
+
 export const getOrderFromRepository = async (orderId: string) => {
   let query: QueryConfig = {
     name: 'get-order-by-id',

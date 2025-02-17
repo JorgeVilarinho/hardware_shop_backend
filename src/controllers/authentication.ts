@@ -1,5 +1,5 @@
-import { createClientRepository, getEmployeeDataRepository, getClientByIdRepository, 
-  getEmployeeByIdRepository, getUserByEmailRepository, getUserTypeRepository } from '../db/users.js';
+import { createClientRepository, getEmployeeDataRepository, getClientByUserIdRepository, 
+  getEmployeeByUserIdRepository, getUserByEmailRepository, getUserTypeRepository } from '../db/users.js';
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -126,7 +126,7 @@ export const isAuthenticated = async (req: express.Request, res: express.Respons
     const data = jwt.verify(access_token, JWT_SECRET) as TokenData
 
     if(data.userType == UserType.CLIENT) {
-      user = await getClientByIdRepository(data.id)
+      user = await getClientByUserIdRepository(data.id)
 
       if(!user) {
         res.status(500).json({ message: 'No se devuelve correctamente el usuario' })
@@ -135,7 +135,7 @@ export const isAuthenticated = async (req: express.Request, res: express.Respons
 
       res.status(200).json({ user })
     } else {
-      user = await getEmployeeByIdRepository(data.id)
+      user = await getEmployeeByUserIdRepository(data.id)
 
       if(!user) {
         res.status(500).json({ message: 'No se devuelve correctamente el usuario' })

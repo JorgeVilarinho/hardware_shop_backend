@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import { addAddressToClientRepository, deleteAddressFromClientRepository, getAddressesFromClientRepository, getClientByIdRepository, getUserByDniRepository, getUserByEmailRepository, 
+import { addAddressToClientRepository, deleteAddressFromClientRepository, getAddressesFromClientRepository, getClientByUserIdRepository, getUserByDniRepository, getUserByEmailRepository, 
   getUserByIdRepository, updateUserDataRepository, updateUserPasswordRepository } from '../db/users.js';
 import { SALT_ROUNDS } from '../config.js';
 
@@ -8,7 +8,7 @@ export const getUserData = async (req: express.Request, res: express.Response) =
   try {
     const { authenticatedUser } = req.body;
 
-    const client = await getClientByIdRepository(authenticatedUser.id);
+    const client = await getClientByUserIdRepository(authenticatedUser.id);
 
     if(!client) {
       res.status(500).json({ message: 'No existe el cliente con id ' + authenticatedUser.id })
@@ -111,7 +111,7 @@ export const addAddress = async (req: express.Request, res: express.Response) =>
     const { authenticatedUser } = req.body;
     const { name, address, cp, province, city, phone } = req.body;
 
-    const client = await getClientByIdRepository(authenticatedUser.id);
+    const client = await getClientByUserIdRepository(authenticatedUser.id);
 
     if(!client) {
       res.status(500).json({ message: 'No existe el cliente con id ' + authenticatedUser.id })
@@ -138,7 +138,7 @@ export const getAddresses = async (req: express.Request, res: express.Response) 
   try {
     const { authenticatedUser } = req.body;
 
-    const client = await getClientByIdRepository(authenticatedUser.id);
+    const client = await getClientByUserIdRepository(authenticatedUser.id);
 
     if(!client) {
       res.status(404).json({ message: 'No existe el cliente con id ' + authenticatedUser.id })
@@ -160,7 +160,7 @@ export const deleteAddress = async (req: express.Request, res: express.Response)
     const { authenticatedUser } = req.body;
     const { id } = req.params
 
-    const client = await getClientByIdRepository(authenticatedUser.id);
+    const client = await getClientByUserIdRepository(authenticatedUser.id);
 
     if(!client) {
       res.status(404).json({ message: 'No existe el cliente con id ' + authenticatedUser.id })

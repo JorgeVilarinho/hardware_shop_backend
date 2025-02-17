@@ -18,7 +18,7 @@ export const getEmployeesRepository = async () => {
   return res.rows
 }
 
-export const getEmployeeByIdRepository = async (employeeId: string) => {
+export const getEmployeeByIdRepository = async (employeeId: number) => {
   let query: QueryConfig = {
     name: 'get-employees-by-id',
     text: `SELECT u.id AS user_id, 'employee' AS kind, u.name, u.email, u.dni, u.phone, u.password, 

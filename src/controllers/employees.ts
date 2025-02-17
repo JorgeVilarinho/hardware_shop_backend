@@ -7,6 +7,7 @@ import { SALT_ROUNDS } from '../config.js'
 import { EmployeesOrderBy } from '../models/types/employeesOrderBy.js'
 import type { Employee } from '../models/employee.js'
 import type { AssignEmployeeToOrderRequest } from '../requests/assignEmployeeToOrderRequest.js'
+import { sendMail } from '../helpers/mailer.js'
 
 export const getEmployees = async (req: express.Request, res: express.Response) => {
   try {
@@ -156,7 +157,7 @@ export const getEmployeeById = async (req: express.Request, res: express.Respons
       return
     }
 
-    const employee = await getEmployeeByIdRepository(employeeId)
+    const employee = await getEmployeeByIdRepository(+employeeId)
 
     res.status(200).json({ employee })
   } catch (error) {
@@ -173,6 +174,18 @@ export const assignEmployeeToOrder = async (req: AssignEmployeeToOrderRequest, r
     if(!ok) {
       res.status(400).json({ message: 'No se ha podido asignar el trabajador al pedido' })
       return
+    }
+
+    const employee = await getEmployeeByIdRepository(employeeId)
+
+    if(employee) {
+      let subject: string = `Pedido Nº ${orderId} asignado`
+      let html: string = `<h1>El pedido Nª ${orderId} se le ha sido asignado</h1>
+      <p>Cuando pueda, entre en el dashboard y cambie el estado del pedido para notificar 
+      al cliente que va a comenzar el envío del mismo<p>
+      <p>Gracias por su trabajo</p>`
+
+      sendMail(employee.email, subject, html)
     }
 
     res.status(200).end()

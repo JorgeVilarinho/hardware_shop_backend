@@ -4,13 +4,13 @@ import { addProductToShoppingBasketRepository, createShoppingBasketRepository,
   deleteProductToShoppingBasketRepository, 
   getShoppingBasketByClientIdRepository, 
   productExistsInBasketRepository, updateProductUnitsInShoppingBasketRepository } from '../db/shopping_basket.js';
-import { getClientByIdRepository } from '../db/users.js';
+import { getClientByUserIdRepository } from '../db/users.js';
 
 export const createShoppingBasket = async (req: express.Request, res: express.Response) => {
   try {
     const { authenticatedUser } = req.body;
 
-    const client = await getClientByIdRepository(authenticatedUser.id);
+    const client = await getClientByUserIdRepository(authenticatedUser.id);
 
     if(!client) {
       res.status(500).json({ message: 'El cliente no existe' });
@@ -35,7 +35,7 @@ export const upsertItemToShoppingBasket = async (req: express.Request, res: expr
     const { authenticatedUser } = req.body;
     const { product_id, units } = req.body;
 
-    const client = await getClientByIdRepository(authenticatedUser.id);
+    const client = await getClientByUserIdRepository(authenticatedUser.id);
 
     if(!client) {
       res.status(500).json({ message: 'El cliente no existe' });
@@ -74,7 +74,7 @@ export const deleteItemToShoppingBasket = async (req: express.Request, res: expr
     const { authenticatedUser } = req.body;
     const { product_id } = req.body;
     
-    const client = await getClientByIdRepository(authenticatedUser.id);
+    const client = await getClientByUserIdRepository(authenticatedUser.id);
 
     if(!client) {
       res.status(500).json({ message: 'El cliente no existe' });
@@ -100,7 +100,7 @@ export const deleteAllItemsToShoppingBasket = async (req: express.Request, res: 
   try {
     const { authenticatedUser } = req.body;
 
-    const client = await getClientByIdRepository(authenticatedUser.id);
+    const client = await getClientByUserIdRepository(authenticatedUser.id);
 
     if(!client) {
       res.status(500).json({ message: 'El cliente no existe' });

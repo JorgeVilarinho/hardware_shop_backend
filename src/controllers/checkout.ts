@@ -2,7 +2,7 @@ import express from 'express'
 import { createOrderRepository, getPaymentOptionsRepository, getShippingMethodsRepository, getShippingOptionsRepository } from '../db/checkout.js'
 import { createOrderId } from '../helpers/checkout.js';
 import type { ProcessCheckoutRequest } from '../requests/processCheckoutRequest.js';
-import { getClientByIdRepository } from '../db/users.js';
+import { getClientByUserIdRepository } from '../db/users.js';
 import { sendMail } from '../helpers/mailer.js';
 
 export const getShippingMethods = async (_: express.Request, res: express.Response) => {
@@ -40,7 +40,7 @@ export const processCheckout = async (req: ProcessCheckoutRequest, res: express.
     const id = createOrderId();
     const { products, shippingMethod, shippingOption, paymentOption, total, address, authenticatedUser } = req.body
 
-    const client = await getClientByIdRepository(authenticatedUser.id);
+    const client = await getClientByUserIdRepository(authenticatedUser.id);
 
     if(!client) {
       res.status(500).json({ message: 'El cliente no existe' });

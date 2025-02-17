@@ -134,7 +134,7 @@ export const getEmployeeDataRepository = async (user_id: number) => {
   if(res.rowCount! > 0) return res.rows[0]
 }
 
-export const getClientByIdRepository = async (user_id: number) => {
+export const getClientByUserIdRepository = async (user_id: number) => {
   const queryCommand = `
     SELECT u.id AS user_id, 'client' AS kind, c.id, u.name, u.email, u.password, u.dni, u.phone
     FROM usuario AS u 
@@ -143,7 +143,7 @@ export const getClientByIdRepository = async (user_id: number) => {
   `;
 
   const query: QueryConfig = {
-    name: 'get-client-by-id',
+    name: 'get-client-by-user-id',
     text: queryCommand,
     values: [ user_id ]
   };
@@ -155,7 +155,44 @@ export const getClientByIdRepository = async (user_id: number) => {
   return undefined
 }
 
-export const getEmployeeByIdRepository = async (user_id: number) => {
+export const getClientByIdRepository = async (clientId: number) => {
+  const queryCommand = `
+    SELECT u.id AS user_id, 'client' AS kind, c.id, u.name, u.email, u.password, u.dni, u.phone
+    FROM usuario AS u 
+    JOIN cliente AS c ON c.user_id = u.id
+    WHERE c.id = $1;
+  `;
+
+  const query: QueryConfig = {
+    name: 'get-client-by-id',
+    text: queryCommand,
+    values: [ clientId ]
+  };
+
+  const res = await pool.query<Client>(query)
+  
+  if(res.rowCount! > 0) return res.rows[0]
+
+  return undefined
+}
+
+// export const getClientByOrderIdRepository = async (orderId: number) => {
+//   const query: QueryConfig = {
+//     name: 'get-client-by-order-id',
+//     text: `SELECT u.id AS user_id, 'client' AS kind, c.id, u.name, u.email, u.password, u.dni, u.phone
+//           FROM usuario AS u 
+//           JOIN cliente AS c ON c.user_id = u.id
+//           JOIN pedido AS p ON p.id_cliente = c.id
+//           WHERE p.id = $1`,
+//     values: [ orderId ]
+//   }
+
+//   const res = await pool.query<Employee>(query)
+
+//   return res.rows[0]
+// }
+
+export const getEmployeeByUserIdRepository = async (user_id: number) => {
   const query: QueryConfig = {
     name: 'get-employee-by-id',
     text: `SELECT u.id AS user_id, 'employee' AS kind, t.id, u.name, u.email, u.password, u.dni, u.phone, t.admin, 
@@ -173,6 +210,26 @@ export const getEmployeeByIdRepository = async (user_id: number) => {
 
   return undefined
 }
+
+export const getEmployeeByIdRepository = async (employeeId: number) => {
+  const query: QueryConfig = {
+    name: 'get-employee-by-id',
+    text: `SELECT u.id AS user_id, 'employee' AS kind, t.id, u.name, u.email, u.password, u.dni, u.phone, t.admin, 
+          tt.valor AS tipo_trabajador, tt.descripcion AS tipo_trabajador_desc  
+          FROM usuario u 
+          JOIN trabajador t ON t.user_id = u.id
+          JOIN tipo_trabajador tt ON t.tipo_trabajador = tt.id
+          WHERE t.id = $1`,
+    values: [ employeeId ]
+  }
+
+  const res = await pool.query<Employee>(query)
+
+  if(res.rowCount! > 0) return res.rows[0]
+
+  return undefined
+}
+
 
 export const createClientRepository = async (name: string, email: string, password: string) => {
   const dbClient = await pool.connect();
@@ -266,9 +323,21 @@ export const getAddressesFromClientRepository = async (client_id: number) => {
     values: [ client_id ]
   };
 
-  const res = await pool.query(query);
+  const res = await pool.query<Address>(query);
   
   return res.rows;
+}
+
+export const getAddressByIdRepository = async (addressId: number) => {
+  const query = {
+    name: 'get-addresses-by-id',
+    text: 'SELECT id, nombre, direccion, cod_postal, provincia, ciudad, telefono FROM direccion WHERE id = $1;',
+    values: [ addressId ]
+  };
+
+  const res = await pool.query<Address>(query);
+  
+  return res.rows[0];
 }
 
 export const deleteAddressFromClientRepository = async (address_id: string) => {
