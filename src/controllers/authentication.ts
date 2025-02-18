@@ -8,6 +8,7 @@ import { UserType } from '../models/types/userType.js';
 import type { TokenData } from '../models/tokenData.js';
 import type { User } from '../models/user.js';
 import type { EmployeeData } from '../models/employeeData.js';
+import type { Client } from '../models/client.js';
 
 export const register = async (req: express.Request, res: express.Response) => {
   try {
@@ -39,6 +40,7 @@ export const login = async (req: express.Request, res: express.Response) => {
     const { email, password } = req.body
 
     let employeeData: EmployeeData | undefined
+    let client: Client | undefined
 
     if(!email || !password) {
       res.status(400).json({ message: 'Error al introducir los datos.' });
@@ -68,6 +70,8 @@ export const login = async (req: express.Request, res: express.Response) => {
 
     if(userType == UserType.EMPLOYEE) {
       employeeData = await getEmployeeDataRepository(user.user_id)
+    } else {
+      client = await getClientByUserIdRepository(user.user_id)
     }
 
     let admin = userType == UserType.EMPLOYEE && employeeData?.admin
@@ -88,6 +92,7 @@ export const login = async (req: express.Request, res: express.Response) => {
     .status(200)
     .json({
         user_id: user.user_id,
+        id: employeeData ? employeeData.id : client?.id,
         kind: userType,
         name: user.name,
         email: user.email,

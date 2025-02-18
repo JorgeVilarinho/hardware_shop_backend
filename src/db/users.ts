@@ -121,7 +121,7 @@ export const getUserTypeRepository = async (user_id: number) => {
 export const getEmployeeDataRepository = async (user_id: number) => {
   let query = {
     name: 'get-employee-data',
-    text: `SELECT admin, tt.valor AS tipo_trabajador, 
+    text: `SELECT t.id, admin, tt.valor AS tipo_trabajador, 
           tt.descripcion tipo_trabajador_desc
           FROM trabajador t
           JOIN tipo_trabajador tt ON t.tipo_trabajador = tt.id

@@ -1,7 +1,10 @@
 import express from 'express'
-import { cancelOrderRepository, getClientCanceledOrdersRepository, getClientActiveOrdersRepository, getOrderFromRepository, 
+import { 
+  cancelOrderRepository, getClientCanceledOrdersRepository, getClientActiveOrdersRepository, getOrderFromRepository, 
   getProductsFromOrderRepository, getSippingOptionCostRepository, updateOrderPaymentRepository, getUnassignedOrdersRepository, 
-  getAssignedOrdersToEmployeeRepository, getOrderStatusByValueRepository, updateOrderStatusByEmployeeRepository } from '../db/orders.js'
+  getAssignedOrdersToEmployeeRepository, getOrderStatusByValueRepository, updateOrderStatusByEmployeeRepository, 
+  getOrdersInShippingRepository
+} from '../db/orders.js'
 import { getAddressByIdRepository, getClientByIdRepository, getClientByUserIdRepository, getEmployeeByIdRepository } from '../db/users.js'
 import { sendMail } from '../helpers/mailer.js'
 import { getShippingMethodByIdRepository } from '../db/checkout.js'
@@ -9,6 +12,7 @@ import { ShippingMethodValue } from '../models/types/shippingMethodValue.js'
 import type { AuthenticatedUser } from '../models/authenticatedUser.js'
 import { OrderStatusValue } from '../models/types/orderStatusValue.model.js'
 import { EmployeeTypeValue } from '../models/types/employeeTypeValue.js'
+import type { OrderStatus } from '../models/orderStatus.model.js'
 
 export const getClientActiveOrders = async (req: express.Request, res: express.Response) => {
   try {
@@ -106,7 +110,18 @@ export const updateOrderStatusByEmployee = async (req: express.Request, res: exp
     let orderStatusValue: OrderStatusValue | undefined
     
     if(employee.tipo_trabajador == EmployeeTypeValue.DELIVERY) {
-      orderStatusValue = OrderStatusValue.IN_SHIPPING
+      let orderStatus: OrderStatus | undefined
+
+      orderStatus = await getOrderStatusByValueRepository(order.estado_pedido_valor)
+
+      switch(orderStatus?.valor) {
+        case OrderStatusValue.PAID:
+          orderStatusValue = OrderStatusValue.IN_SHIPPING
+          break
+        case OrderStatusValue.IN_SHIPPING:
+          orderStatusValue = OrderStatusValue.COMPLETED
+          break
+      }
     }
 
     if(!orderStatusValue) {
@@ -148,11 +163,57 @@ export const updateOrderStatusByEmployee = async (req: express.Request, res: exp
     <p>Gracias por confiar en nosotros</p>
     `
 
+    if(orderStatusValue == OrderStatusValue.IN_SHIPPING) {
+      subject = `Pedido Nº ${order.id} ya está en proceso de envío`
+      html = `<h1>Su pedido ya está en proceso de envío</h1>
+      <p>Se le notifica que su pedido ya está en proceso de envío hacia la dirección indicada</p>
+      <h2>Dirección:</h2>
+      <p>${address.direccion}</p>
+      <p>${address.ciudad}, ${address.provincia}, ${address.cod_postal}</p>
+      <p>Número de teléfono: ${address.telefono}</p>
+      <p>Gracias por confiar en nosotros</p>
+      `
+    } else {
+      subject = `Su pedido Nº ${order.id} se le ha sido entregado satisfactoriamente`
+      html = `<h1>Su pedido ha sido entregado satisfactoriamente</h1>
+      <p>Se le notifica que su pedido ha sido entregado satisfactoriamente ha la siguiente dirección</p>
+      <h2>Dirección:</h2>
+      <p>${address.direccion}</p>
+      <p>${address.ciudad}, ${address.provincia}, ${address.cod_postal}</p>
+      <p>Número de teléfono: ${address.telefono}</p>
+      <p>Gracias por confiar en nosotros</p>
+      `
+    }
+
     sendMail(to, subject, html)
 
     res.status(200).end()
   } catch (error) {
     res.status(500).json({ message: 'No se ha podido devolver los pedidos no asignados' })
+  }
+}
+
+export const getOrdersInShipping = async (req: express.Request, res: express.Response) => {
+  try {
+    const { employeeId } = req.params
+
+    if(!employeeId) {
+      res.status(400).json({ message: 'Se necesita enviar el id del cliente' })
+      return
+    }
+
+    const orderStatus = await getOrderStatusByValueRepository(OrderStatusValue.IN_SHIPPING)
+
+    if(!orderStatus) {
+      res.status(400).json({ message: 'No se encuentra el estado pedido a establecer' })
+      return
+    }
+
+    const orders = await getOrdersInShippingRepository(employeeId, orderStatus.id);
+
+    res.status(200).json({ orders })
+  } catch (error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
 
