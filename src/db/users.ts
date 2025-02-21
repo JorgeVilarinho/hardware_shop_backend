@@ -90,7 +90,7 @@ export const getUserTypeRepository = async (user_id: number) => {
   `;
 
   let query = {
-    name: 'get-client-by-user-id',
+    name: 'get-client-by-user-id-1',
     text: queryCommand,
     values: [ user_id ]
   };
@@ -194,13 +194,12 @@ export const getClientByIdRepository = async (clientId: number) => {
 
 export const getEmployeeByUserIdRepository = async (user_id: number) => {
   const query: QueryConfig = {
-    name: 'get-employee-by-id',
     text: `SELECT u.id AS user_id, 'employee' AS kind, t.id, u.name, u.email, u.password, u.dni, u.phone, t.admin, 
           tt.valor AS tipo_trabajador, tt.descripcion AS tipo_trabajador_desc  
           FROM usuario u 
           JOIN trabajador t ON t.user_id = u.id
           JOIN tipo_trabajador tt ON t.tipo_trabajador = tt.id
-          WHERE u.id = $1;`,
+          WHERE u.id = $1`,
     values: [ user_id ]
   }
 

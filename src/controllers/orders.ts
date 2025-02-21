@@ -3,9 +3,12 @@ import {
   cancelOrderRepository, getClientCanceledOrdersRepository, getClientActiveOrdersRepository, getOrderFromRepository, 
   getProductsFromOrderRepository, getSippingOptionCostRepository, updateOrderPaymentRepository, getUnassignedOrdersRepository, 
   getAssignedOrdersToEmployeeRepository, getOrderStatusByValueRepository, updateOrderStatusByEmployeeRepository, 
-  getOrdersInShippingRepository
+  getOrdersInShippingRepository,
+  unassignEmployeeToOrderRepository,
+  getOrdersInShopRepository,
+  getShippingMethodByValueRepository
 } from '../db/orders.js'
-import { getAddressByIdRepository, getClientByIdRepository, getClientByUserIdRepository, getEmployeeByIdRepository } from '../db/users.js'
+import { getAddressByIdRepository, getClientByIdRepository, getClientByUserIdRepository, getEmployeeByIdRepository, getEmployeeByUserIdRepository } from '../db/users.js'
 import { sendMail } from '../helpers/mailer.js'
 import { getShippingMethodByIdRepository } from '../db/checkout.js'
 import { ShippingMethodValue } from '../models/types/shippingMethodValue.js'
@@ -55,6 +58,30 @@ export const getClientCanceledOrders = async (req: express.Request, res: express
 export const getUnassignedOrders = async (req: express.Request, res: express.Response) => {
   try {
     const orders = await getUnassignedOrdersRepository()
+
+    res.status(200).json({ orders })
+  } catch (error) {
+    res.status(500).json({ message: 'No se ha podido devolver los pedidos no asignados' })
+  }
+}
+
+export const getOrdersInShop = async (req: express.Request, res: express.Response) => {
+  try {
+    const shippingMethod = await getShippingMethodByValueRepository(ShippingMethodValue.SHOP_PICKUP)
+
+    if(!shippingMethod) {
+      res.status(400).json({ message: 'No se ha encontrado el método de envío' })
+      return
+    }
+
+    const orderStatus = await getOrderStatusByValueRepository(OrderStatusValue.COMPLETED)
+
+    if(!orderStatus) {
+      res.status(400).json({ message: 'No se ha encontrado el estado del pedido' })
+      return
+    }
+
+    const orders = await getOrdersInShopRepository(shippingMethod, orderStatus)
 
     res.status(200).json({ orders })
   } catch (error) {
@@ -122,6 +149,8 @@ export const updateOrderStatusByEmployee = async (req: express.Request, res: exp
           orderStatusValue = OrderStatusValue.COMPLETED
           break
       }
+    } else if(employee.tipo_trabajador == EmployeeTypeValue.SHOP_CLERK) {
+      orderStatusValue = OrderStatusValue.COMPLETED
     }
 
     if(!orderStatusValue) {
@@ -138,6 +167,9 @@ export const updateOrderStatusByEmployee = async (req: express.Request, res: exp
     
     await updateOrderStatusByEmployeeRepository(order, orderStatus)
 
+    if(orderStatus.valor == OrderStatusValue.COMPLETED 
+      && employee.tipo_trabajador != EmployeeTypeValue.SHOP_CLERK) await unassignEmployeeToOrderRepository(order)
+
     const client = await getClientByIdRepository(order.id_cliente)
 
     if(!client) {
@@ -145,51 +177,52 @@ export const updateOrderStatusByEmployee = async (req: express.Request, res: exp
       return
     }
 
-    const address = await getAddressByIdRepository(order.id_direccion)
-
-    if(!address) {
-      res.status(400).json({ message: 'No se ha podido encontrar la dirección de envío del pedido' })
-      return
-    }
-
     let to: string = client.email
-    let subject: string = `Pedido Nº ${order.id} ya está en proceso de envío`
-    let html: string = `<h1>Su pedido ya está en proceso de envío</h1>
-    <p>Se le notifica que su pedido ya está en proceso de envío hacia la dirección indicada</p>
-    <h2>Dirección:</h2>
-    <p>${address.direccion}</p>
-    <p>${address.ciudad}, ${address.provincia}, ${address.cod_postal}</p>
-    <p>Número de teléfono: ${address.telefono}</p>
-    <p>Gracias por confiar en nosotros</p>
-    `
+    let subject: string
+    let html: string
 
-    if(orderStatusValue == OrderStatusValue.IN_SHIPPING) {
-      subject = `Pedido Nº ${order.id} ya está en proceso de envío`
-      html = `<h1>Su pedido ya está en proceso de envío</h1>
-      <p>Se le notifica que su pedido ya está en proceso de envío hacia la dirección indicada</p>
-      <h2>Dirección:</h2>
-      <p>${address.direccion}</p>
-      <p>${address.ciudad}, ${address.provincia}, ${address.cod_postal}</p>
-      <p>Número de teléfono: ${address.telefono}</p>
-      <p>Gracias por confiar en nosotros</p>
-      `
+    if(employee.tipo_trabajador == EmployeeTypeValue.DELIVERY) {
+      const address = await getAddressByIdRepository(order.id_direccion)
+
+      if(!address) {
+        res.status(400).json({ message: 'No se ha podido encontrar la dirección de envío del pedido' })
+        return
+      }
+
+      if(orderStatusValue == OrderStatusValue.IN_SHIPPING) {
+        subject = `Pedido Nº ${order.id} ya está en proceso de envío`
+        html = `<h1>Su pedido ya está en proceso de envío</h1>
+        <p>Se le notifica que su pedido ya está en proceso de envío hacia la dirección indicada</p>
+        <h2>Dirección:</h2>
+        <p>${address.direccion}</p>
+        <p>${address.ciudad}, ${address.provincia}, ${address.cod_postal}</p>
+        <p>Número de teléfono: ${address.telefono}</p>
+        <p>Gracias por confiar en nosotros</p>
+        `
+      } else {
+        subject = `Su pedido Nº ${order.id} se le ha sido entregado satisfactoriamente`
+        html = `<h1>Su pedido ha sido entregado satisfactoriamente</h1>
+        <p>Se le notifica que su pedido ha sido entregado satisfactoriamente ha la siguiente dirección</p>
+        <h2>Dirección:</h2>
+        <p>${address.direccion}</p>
+        <p>${address.ciudad}, ${address.provincia}, ${address.cod_postal}</p>
+        <p>Número de teléfono: ${address.telefono}</p>
+        <p>Gracias por confiar en nosotros</p>
+        `
+      }
     } else {
-      subject = `Su pedido Nº ${order.id} se le ha sido entregado satisfactoriamente`
+      subject = `Su pedido Nº ${order.id} se le ha sido entregado en tienda satisfactoriamente`
       html = `<h1>Su pedido ha sido entregado satisfactoriamente</h1>
-      <p>Se le notifica que su pedido ha sido entregado satisfactoriamente ha la siguiente dirección</p>
-      <h2>Dirección:</h2>
-      <p>${address.direccion}</p>
-      <p>${address.ciudad}, ${address.provincia}, ${address.cod_postal}</p>
-      <p>Número de teléfono: ${address.telefono}</p>
+      <p>Se le notifica que su pedido ha sido entregado satisfactoriamente en nuestra tienda</p>
       <p>Gracias por confiar en nosotros</p>
       `
-    }
+    }    
 
     sendMail(to, subject, html)
 
     res.status(200).end()
   } catch (error) {
-    res.status(500).json({ message: 'No se ha podido devolver los pedidos no asignados' })
+    res.status(500).json({ message: 'No se ha podido cambiar el estado del pedido' })
   }
 }
 
@@ -329,7 +362,6 @@ export const cancelOrder = async (req: express.Request, res: express.Response) =
 
     res.status(200).json({ order })
   } catch (error) {
-    console.log(error)
     res.status(500).json({ message: 'No se ha podido cancelar el pedido' })
   }
 }

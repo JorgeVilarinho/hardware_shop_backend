@@ -17,9 +17,9 @@ export const getClientActiveOrdersRepository = async (clientId: number) => {
           FROM pedido p
           JOIN estado_pedido ep 
           ON p.id_estado_pedido = ep.id
-          WHERE ep.valor != $1
-          AND p.id_cliente = $2`,
-    values: [ OrderStatusValue.CANCELED, clientId ]
+          WHERE ep.valor NOT IN ('canceled', 'completed')
+          AND p.id_cliente = $1`,
+    values: [ clientId ]
   }
 
   let res1 = await pool.query<Order>(query);
@@ -209,6 +209,16 @@ export const updateOrderStatusByEmployeeRepository = async (order: Order, orderS
   await pool.query(query);
 }
 
+export const unassignEmployeeToOrderRepository = async (order: Order) => {
+  let query: QueryConfig = {
+    name: 'unassign-employee-to-order',
+    text: `UPDATE pedido SET id_trabajador = NULL WHERE id = $1`,
+    values: [ order.id ]
+  }
+
+  await pool.query(query);
+}
+
 export const getOrderFromRepository = async (orderId: string) => {
   let query: QueryConfig = {
     name: 'get-order-by-id',
@@ -278,6 +288,45 @@ export const getOrdersInShippingRepository = async (employeeId: string, orderSta
 
     let res1 = await pool.query<any>(query)
     inShippingOrder!.imagen = res1.rows[0]?.imagen
+  }
+
+  return res.rows
+}
+
+export const getOrdersInShopRepository = async (shippingMethod: ShippingMethod, orderStatus: OrderStatus) => {
+  let query: QueryConfig = {
+    name: 'get-orders-in-shop',
+    text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
+          id_opcion_envio, fecha_creacion, total, id_direccion, 
+          ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
+          FROM pedido p
+          JOIN estado_pedido ep 
+          ON p.id_estado_pedido = ep.id
+          WHERE p.id_metodo_envio = $1
+          AND p.id_estado_pedido != $2`,
+    values: [ shippingMethod.id, orderStatus.id ]
+  }
+
+  let res = await pool.query<Order>(query);
+
+  for (let i = 0; i < res.rows.length; i++) {
+    const inShopOrder = res.rows[i];
+    
+    query = {
+      name: 'get-first-product-image',
+      text: `SELECT image_name AS imagen
+            FROM pedido_producto pp
+            JOIN pedido p 
+            ON pp.id_pedido = p.id
+            JOIN producto pro
+            ON pp.id_producto = pro.id
+            WHERE p.id = $1
+            LIMIT 1`,
+      values: [ inShopOrder?.id ]
+    }
+
+    let res1 = await pool.query<any>(query)
+    inShopOrder!.imagen = res1.rows[0]?.imagen
   }
 
   return res.rows

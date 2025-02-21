@@ -1,3 +1,4 @@
 export enum EmployeeTypeValue {
-  DELIVERY = 'delivery'
+  DELIVERY = 'delivery',
+  SHOP_CLERK = 'shop-clerk'
 }

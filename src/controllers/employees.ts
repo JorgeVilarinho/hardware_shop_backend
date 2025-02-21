@@ -1,6 +1,10 @@
 import express from 'express'
 import bcrypt from 'bcrypt'
-import { assignEmployeeToOrderRepository, createEmployeeRepository, deleteEmployeeRepository, getEmployeeByIdRepository, getEmployeesOrderedByLessAssignedOrdersRepository, getEmployeesRepository, getEmployeeTypesRepository, updateEmployeeByIdRepository } from '../db/employees.js'
+import { 
+  assignEmployeeToOrderRepository, createEmployeeRepository, deleteEmployeeRepository, 
+  getEmployeeByIdRepository, getEmployeesOrderedByLessAssignedOrdersRepository, getEmployeesRepository, 
+  getEmployeeTypesRepository, updateEmployeeByIdRepository 
+} from '../db/employees.js'
 import type { CreateEmployeeRequest } from '../requests/createEmployeeRequest.js'
 import { getUserByDniRepository, getUserByEmailRepository, getUserByIdRepository } from '../db/users.js'
 import { SALT_ROUNDS } from '../config.js'
@@ -107,7 +111,7 @@ export const updateEmployeeById = async (req: express.Request, res: express.Resp
       return
     }
 
-    if(!fullName || !dni || !email || updatePassword == undefined || !phone || !employeeType || admin == undefined) {
+    if(!fullName || !dni || !email || updatePassword == undefined || !phone) {
       res.status(400).json({ message: 'Error al introducir los datos.' });
       return;
     }

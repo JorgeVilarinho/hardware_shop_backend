@@ -132,8 +132,8 @@ export const updateEmployeeByIdRepository = async (
   email: string,
   phone: string,
   hashedPassword: string | undefined,
-  admin: boolean,
-  employeeType: string
+  admin: boolean | undefined,
+  employeeType: string | undefined
 ) => {
   const dbClient = await pool.connect();
 
@@ -158,21 +158,23 @@ export const updateEmployeeByIdRepository = async (
   
     await dbClient.query(query);
 
-    query = {
-      name: 'get-employee-type',
-      text: `SELECT * FROM tipo_trabajador WHERE valor = $1`,
-      values: [ employeeType ]
+    if(admin != undefined && employeeType != undefined) {
+      query = {
+        name: 'get-employee-type',
+        text: `SELECT * FROM tipo_trabajador WHERE valor = $1`,
+        values: [ employeeType ]
+      }
+  
+      let res = await dbClient.query<EmployeeType>(query)
+  
+      query = {
+        name: 'update-employee-by-id',
+        text: `UPDATE trabajador SET admin = $1, tipo_trabajador = $2 WHERE id = $3`,
+        values: [ admin as unknown as string, res.rows[0]?.id as unknown as string, employeeId ]
+      }
+  
+      await dbClient.query(query)
     }
-
-    let res = await dbClient.query<EmployeeType>(query)
-
-    query = {
-      name: 'update-employee-by-id',
-      text: `UPDATE trabajador SET admin = $1, tipo_trabajador = $2 WHERE id = $3`,
-      values: [ admin as unknown as string, res.rows[0]?.id as unknown as string, employeeId ]
-    }
-
-    await dbClient.query(query)
 
     await dbClient.query('COMMIT')
   } catch (error) {
