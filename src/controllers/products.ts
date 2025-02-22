@@ -1,5 +1,5 @@
 import express from 'express'
-import { getAllProductsRepository, getMaxPriceRepository, getProductsByFiltersRepository, getProductStockRepository } from '../db/products.js'
+import { getAllProductsRepository, getMaxPriceRepository, getProductByIdRepository, getProductsByFiltersRepository, getProductStockRepository } from '../db/products.js'
 
 export const getProducts = async (req: express.Request, res: express.Response) => {
   try {
@@ -39,6 +39,23 @@ export const getAvailableStock = async (req: express.Request, res: express.Respo
 
     res.status(200).json({ stock });
   } catch(error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
+
+export const getProductById = async (req: express.Request, res: express.Response) => {
+  try {
+    const { id } = req.params;
+
+    if(!id) {
+      res.status(400).json({ message: 'El id del producto a buscar es incorrecto' })
+      return
+    }
+
+    const product = await getProductByIdRepository(id)
+
+    res.status(200).json({ product })
+  } catch (error) {
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
