@@ -134,3 +134,64 @@ export const getProductByIdRepository = async (productId: string) => {
   
   return res.rows[0];
 }
+
+export const updateProductByIdRepository = async (
+  productId: string,
+  name: string,
+  description: string,
+  price: number,
+  units: number,
+  discount: number,
+  categoryId: number,
+  brandId: number,
+  imageName: string | undefined
+) => {
+  let query: QueryConfig
+
+  if(imageName) {
+    query = {
+      name: 'update-product-by-id-with-image',
+      text: `UPDATE producto SET nombre = $1, descripcion = $2, precio = $3, unidades = $4, 
+            descuento = $5, id_categoria = $6, id_marca = $7, image_name = $8 WHERE id = $9`,
+      values: [ name, description, price, units, discount, categoryId, brandId, imageName, productId ],
+    }
+  } else {
+    query = {
+      name: 'update-product-by-id-without-image',
+      text: `UPDATE producto SET nombre = $1, descripcion = $2, precio = $3, unidades = $4, 
+            descuento = $5, id_categoria = $6, id_marca = $7 WHERE id = $8`,
+      values: [ name, description, price, units, discount, categoryId, brandId, productId ],
+    }
+  }
+
+  await pool.query<Product>(query);
+};
+
+export const addProductRepository = async (
+  name: string,
+  description: string,
+  price: number,
+  units: number,
+  discount: number,
+  categoryId: number,
+  brandId: number,
+  imageName: string
+) => {
+  const query: QueryConfig = {
+    name: 'add-new-product',
+    text: `INSERT INTO producto(nombre, descripcion, precio, unidades, descuento, id_categoria, id_marca, image_name) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
+    values: [ name, description, price, units, discount, categoryId, brandId, imageName ]
+  };
+  
+  let res = await pool.query(query);
+}
+
+export const deleteProductRepository = async (productId: string) => {
+  const query: QueryConfig = {
+    name: 'delete-product-by-id',
+    text: `DELETE FROM producto WHERE id = $1`,
+    values: [ productId ]
+  };
+  
+  await pool.query(query);
+}

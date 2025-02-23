@@ -4,5 +4,5 @@ import { getBrandByValue, getBrands, getBrandsByCategory } from '../controllers/
 export default (router: express.Router) => {
   router.get('/api/brands', getBrands);
   router.get('/api/brands/:brandValue', getBrandByValue);
-  router.get('/api/brands/:categoryId', getBrandsByCategory);
+  router.get('/api/brands/category/:categoryId', getBrandsByCategory);
 }
