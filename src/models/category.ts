@@ -1,4 +1,7 @@
+import type { CategoryValue } from "./types/categoryValue.js";
+
 export interface Category {
   id: number,
-  nombre: string
+  nombre: string,
+  valor: CategoryValue
 }

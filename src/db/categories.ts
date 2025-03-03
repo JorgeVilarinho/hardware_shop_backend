@@ -13,11 +13,23 @@ export const getCategoriesRepository = async () => {
   return res.rows;
 }
 
-export const getCategoryByValueRepository = async (categoryValue: string) => {
+export const getCategoryByNameRepository = async (categoryName: string) => {
+  const query: QueryConfig = {
+    name: 'get-category-by-name',
+    text: `SELECT * FROM categoria WHERE nombre = $1`,
+    values: [ categoryName ]
+  };
+  
+  const res = await pool.query<Category>(query);
+  
+  return res.rows[0];
+}
+
+export const getCategoryByValueRepository = async (categoryName: string) => {
   const query: QueryConfig = {
     name: 'get-category-by-value',
-    text: `SELECT * FROM categoria WHERE nombre = $1`,
-    values: [ categoryValue ]
+    text: `SELECT * FROM categoria WHERE valor = $1`,
+    values: [ categoryName ]
   };
   
   const res = await pool.query<Category>(query);
