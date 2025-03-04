@@ -8,17 +8,17 @@ import {
 
 export const getProducts = async (req: express.Request, res: express.Response) => {
   try {
-    const { orderBy, minPrice, maxPrice, category, brands } = req.query;
+    const { orderBy, minPrice, maxPrice, category, brands, searchByText } = req.query;
 
     let products;
 
-    if(!orderBy && !minPrice && !maxPrice && !category && !brands) {
+    if(!orderBy && !minPrice && !maxPrice && !category && !brands && !searchByText) {
       products = await getAllProductsRepository();
       res.status(200).json({ products })
       return
     }
 
-    products = await getProductsByFiltersRepository(orderBy as string, +minPrice!, +maxPrice!, +category!, brands as string);
+    products = await getProductsByFiltersRepository(orderBy as string, +minPrice!, +maxPrice!, +category!, brands as string, searchByText as string);
 
     res.status(200).json({ products });
   } catch(error) {

@@ -22,7 +22,7 @@ export const getAllProductsRepository = async () => {
 }
 
 export const getProductsByFiltersRepository = async (orderBy: string, minPrice: number, 
-  maxPrice: number, category: number, brands: string) => {
+  maxPrice: number, category: number, brands: string, searchByText: string) => {
   let queryText = `SELECT p.id, p.nombre AS name, p.descripcion AS description, 
                   m.nombre AS brand, c.nombre AS category, p.unidades AS units, 
                   p.precio AS price, p.descuento AS discount, p.image_name AS image
@@ -53,6 +53,10 @@ export const getProductsByFiltersRepository = async (orderBy: string, minPrice: 
 
   if(brands) {
     queryTextFilters.push('m.id IN(' + brands + ')');
+  }
+
+  if(searchByText) {
+    queryTextFilters.push(`to_tsvector(p.nombre) @@ to_tsquery('${searchByText}')`);
   }
 
   if(queryTextFilters.length !== 0) {
