@@ -38,7 +38,7 @@ export const getPaymentOptions = async (_: express.Request, res: express.Respons
 export const processCheckout = async (req: ProcessCheckoutRequest, res: express.Response) => {
   try {
     const id = createOrderId();
-    const { products, shippingMethod, shippingOption, paymentOption, total, address, authenticatedUser } = req.body
+    const { products, pcs, shippingMethod, shippingOption, paymentOption, total, address, authenticatedUser } = req.body
 
     const client = await getClientByUserIdRepository(authenticatedUser.id);
 
@@ -48,7 +48,7 @@ export const processCheckout = async (req: ProcessCheckoutRequest, res: express.
     }
 
     const order = await createOrderRepository(id, client.id, shippingMethod.id, shippingOption?.id ?? null, 
-      paymentOption.id, total, address?.id ?? null, products)
+      paymentOption.id, total, address?.id ?? null, products, pcs)
 
     let to = client.email
     let subject = `[${order?.id}], Pedido pendiente en ByteShop. Total ${order?.total.toFixed(2)} €`
@@ -64,6 +64,7 @@ export const processCheckout = async (req: ProcessCheckoutRequest, res: express.
 
     res.status(200).json({ order })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
