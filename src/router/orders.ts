@@ -2,7 +2,7 @@ import express from 'express'
 import { isAdmin, isAuthenticated } from '../middlewares/index.js'
 import { 
   cancelOrder, getAssignedOrders, getClientActiveOrders, getClientCanceledOrders, 
-  getOrdersInShipping, getOrdersInShop, getProductsFromOrder, getShippingOptionCost,
+  getOrdersInShipping, getOrdersInShop, getPcProductsFromOrder, getProductsFromOrder, getShippingOptionCost,
   getUnassignedOrders, processOrderPayment, updateOrderStatusByEmployee 
 } from '../controllers/orders.js'
 
@@ -14,6 +14,7 @@ export default (router: express.Router) => {
   router.get('/api/orders/employee/:employeeId/in-shipping', isAuthenticated, getOrdersInShipping)
   router.get('/api/orders/canceled', isAuthenticated, getClientCanceledOrders)
   router.get('/api/orders/:orderId/products', isAuthenticated, getProductsFromOrder)
+  router.get('/api/orders/:orderId/pcs', isAuthenticated, getPcProductsFromOrder)
   router.get('/api/orders/:shippingOptionId/cost', isAuthenticated, getShippingOptionCost)
   router.post('/api/orders/:orderId/payment', isAuthenticated, processOrderPayment)
   router.put('/api/orders/:orderId/cancel', isAuthenticated, cancelOrder)

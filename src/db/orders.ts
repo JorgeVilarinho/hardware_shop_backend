@@ -7,6 +7,8 @@ import type { ShippingOption } from "../models/shippingOption.js";
 import type { OrderStatus } from "../models/orderStatus.model.js";
 import { ShippingMethodValue } from "../models/types/shippingMethodValue.js";
 import type { ShippingMethod } from "../models/shippingMethod.js";
+import { CategoryValue } from "../models/types/categoryValue.js";
+import type { PcProduct } from "../models/pcProduct.js";
 
 export const getClientActiveOrdersRepository = async (clientId: number) => {
   let query: QueryConfig = {
@@ -26,22 +28,48 @@ export const getClientActiveOrdersRepository = async (clientId: number) => {
 
   for (let i = 0; i < res1.rows.length; i++) {
     const activeOrder = res1.rows[i];
-    
+
     query = {
-      name: 'get-first-product-image',
-      text: `SELECT image_name AS imagen
-            FROM pedido_producto pp
-            JOIN pedido p 
-            ON pp.id_pedido = p.id
-            JOIN producto pro
-            ON pp.id_producto = pro.id
-            WHERE p.id = $1
-            LIMIT 1`,
+      name: 'has-pc',
+      text: `SELECT * 
+            FROM pedido_pc
+            WHERE id_pedido = $1`,
       values: [ activeOrder?.id ]
     }
 
-    let res2 = await pool.query<any>(query)
-    activeOrder!.imagen = res2.rows[0]?.imagen
+    let res2 = await pool.query(query)
+
+    if(res2.rowCount! > 0) {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_pc p_pc
+              INNER JOIN producto p
+              ON p_pc.id_producto = p.id
+              INNER JOIN categoria c
+              ON p.id_categoria = c.id
+              WHERE id_pedido = $1
+              AND c.valor = $2`,
+        values: [ activeOrder?.id, CategoryValue.PC_TOWERS_AND_ENCLOSURES ]
+      }
+
+      let res3 = await pool.query<any>(query)
+      activeOrder!.imagen = res3.rows[0]?.imagen
+    } else {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_producto pp
+              JOIN pedido p 
+              ON pp.id_pedido = p.id
+              JOIN producto pro
+              ON pp.id_producto = pro.id
+              WHERE p.id = $1
+              LIMIT 1`,
+        values: [ activeOrder?.id ]
+      }
+  
+      let res3 = await pool.query<any>(query)
+      activeOrder!.imagen = res3.rows[0]?.imagen
+    }
   }
 
   return res1.rows;
@@ -65,24 +93,50 @@ export const getClientCanceledOrdersRepository = async (clientId: number) => {
 
   for (let i = 0; i < res1.rows.length; i++) {
     const canceledOrder = res1.rows[i];
-    
+
     query = {
-      name: 'get-first-product-image',
-      text: `SELECT image_name AS imagen
-            FROM pedido_producto pp
-            JOIN pedido p 
-            ON pp.id_pedido = p.id
-            JOIN producto pro
-            ON pp.id_producto = pro.id
-            WHERE p.id = $1
-            LIMIT 1`,
+      name: 'has-pc',
+      text: `SELECT * 
+            FROM pedido_pc
+            WHERE id_pedido = $1`,
       values: [ canceledOrder?.id ]
     }
 
-    let res2 = await pool.query<any>(query)
-    canceledOrder!.imagen = res2.rows[0]?.imagen
-  }
+    let res2 = await pool.query(query)
 
+    if(res2.rowCount! > 0) {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_pc p_pc
+              INNER JOIN producto p
+              ON p_pc.id_producto = p.id
+              INNER JOIN categoria c
+              ON p.id_categoria = c.id
+              WHERE id_pedido = $1
+              AND c.valor = $2`,
+        values: [ canceledOrder?.id, CategoryValue.PC_TOWERS_AND_ENCLOSURES ]
+      }
+
+      let res3 = await pool.query<any>(query)
+      canceledOrder!.imagen = res3.rows[0]?.imagen
+    } else {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_producto pp
+              JOIN pedido p 
+              ON pp.id_pedido = p.id
+              JOIN producto pro
+              ON pp.id_producto = pro.id
+              WHERE p.id = $1
+              LIMIT 1`,
+        values: [ canceledOrder?.id ]
+      }
+
+      let res3 = await pool.query<any>(query)
+      canceledOrder!.imagen = res3.rows[0]?.imagen
+    }
+  }
+  
   return res1.rows;
 }
 
@@ -354,6 +408,49 @@ export const getProductsFromOrderRepository = async (orderId: string) => {
   return res.rows
 }
 
+export const getPcProductsFromOrderRepository = async (orderId: string) => {
+  let pcs: PcProduct[] = []
+
+  let query: QueryConfig = {
+    name: 'get-pcs-from-order',
+    text: `SELECT DISTINCT(id_pc) 
+          FROM pedido_pc
+          WHERE id_pedido = $1`,
+    values: [ orderId ]
+  }
+
+  let res = await pool.query(query)
+
+  query = {
+    name: 'get-pc-components-from-id-pc',
+    text: `SELECT p.id, m.nombre AS brand, c.nombre AS category, 
+          p.nombre AS name, p.descripcion AS description, p.descuento AS discount, 
+          1 AS units, p.precio AS price, p.image_name AS image
+          FROM producto p
+          JOIN pedido_pc p_pc
+          ON p.id = p_pc.id_producto
+          JOIN marca m
+          ON p.id_marca = m.id
+          JOIN categoria c
+          ON p.id_categoria = c.id
+          WHERE p_pc.id_pc = $1;`
+  }
+
+  for(let i = 0; i < res.rowCount!; i++) {
+    let id_pc = res.rows[i].id_pc
+
+    query.values = [ id_pc ]
+
+    let res1 = await pool.query<Product>(query)
+    pcs.push({
+      id: id_pc,
+      components: res1.rows
+    })
+  }
+
+  return pcs
+}
+
 export const getSippingOptionCostRepository = async (shippingOptionId: string) => {
   const query: QueryConfig = {
     name: 'get-shipping-option-cost',
@@ -419,6 +516,49 @@ export const cancelOrderRepository = async (orderId: string) => {
     }
   
     await dbClient.query(query)
+
+    query = {
+      text: `SELECT DISTINCT(id_pc) 
+            FROM pedido_pc
+            WHERE id_pedido = $1`,
+      values: [ orderId ]
+    }
+  
+    let res1 = await dbClient.query(query)
+  
+    query = {
+      name: 'get-pc-components-from-id-pc',
+      text: `SELECT p.id, m.nombre AS brand, c.nombre AS category, 
+            p.nombre AS name, p.descripcion AS description, p.descuento AS discount, 
+            1 AS units, p.precio AS price, p.image_name AS image
+            FROM producto p
+            JOIN pedido_pc p_pc
+            ON p.id = p_pc.id_producto
+            JOIN marca m
+            ON p.id_marca = m.id
+            JOIN categoria c
+            ON p.id_categoria = c.id
+            WHERE p_pc.id_pc = $1;`
+    }
+  
+    for(let i = 0; i < res1.rowCount!; i++) {
+      let id_pc = res1.rows[i].id_pc
+  
+      query.values = [ id_pc ]
+  
+      let res2 = await pool.query<Product>(query)
+
+      for(let j = 0; j < res2.rowCount!; j++) {
+        const product = res2.rows[j]
+
+        query = {
+          text: `UPDATE producto SET unidades = unidades + 1 WHERE id = $1`,
+          values: [ product?.id ]
+        }
+
+        await dbClient.query(query)
+      }
+    }
   
     query = {
       text: `SELECT p.id, m.nombre AS brand, c.nombre AS category, 
@@ -435,13 +575,12 @@ export const cancelOrderRepository = async (orderId: string) => {
       values: [ orderId ]
     }
   
-    let res1 = await dbClient.query<Product>(query);
+    let res2 = await dbClient.query<Product>(query);
   
-    for(let i = 0; i < res1.rows.length; i++) {
+    for(let i = 0; i < res2.rows.length; i++) {
       const product = res1.rows[i]
   
       query = {
-        name: 'update-product-when-canceling-order',
         text: `UPDATE producto SET unidades = unidades + $1 WHERE id = $2`,
         values: [ product?.units, product?.id ]
       }

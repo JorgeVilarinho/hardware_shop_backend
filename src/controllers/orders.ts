@@ -6,7 +6,8 @@ import {
   getOrdersInShippingRepository,
   unassignEmployeeToOrderRepository,
   getOrdersInShopRepository,
-  getShippingMethodByValueRepository
+  getShippingMethodByValueRepository,
+  getPcProductsFromOrderRepository
 } from '../db/orders.js'
 import { getAddressByIdRepository, getClientByIdRepository, getClientByUserIdRepository, getEmployeeByIdRepository, getEmployeeByUserIdRepository } from '../db/users.js'
 import { sendMail } from '../helpers/mailer.js'
@@ -32,6 +33,7 @@ export const getClientActiveOrders = async (req: express.Request, res: express.R
 
     res.status(200).json({ orders })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
@@ -263,6 +265,24 @@ export const getProductsFromOrder = async (req: express.Request, res: express.Re
 
     res.status(200).json({ products })
   } catch (error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
+
+export const getPcProductsFromOrder = async (req: express.Request, res: express.Response) => {
+  try {
+    const { orderId } = req.params
+
+    if(!orderId) {
+      res.status(400).json({ message: 'Se necesita enviar el id del pedido' })
+      return
+    }
+
+    const pcs = await getPcProductsFromOrderRepository(orderId);
+
+    res.status(200).json({ pcs })
+  } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
