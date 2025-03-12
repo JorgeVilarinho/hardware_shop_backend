@@ -94,6 +94,8 @@ export const createOrderRepository = async (id: string, clientId: number,
           await dbClient.query(`INSERT INTO pedido_pc (id_pedido, id_pc, id_producto) VALUES (${id}, '${pc?.id}', ${component?.id})`)
           await dbClient.query(`UPDATE producto SET unidades = unidades - 1 WHERE id = ${component?.id}`)
         }
+        
+        await dbClient.query(`INSERT INTO pedido_pc_montaje (id_pedido, id_pc, montaje) VALUES (${id}, '${pc?.id}', ${pc?.assembly})`)
       }
 
       await dbClient.query('COMMIT')

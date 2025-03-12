@@ -1,7 +1,6 @@
 import type { QueryConfig } from "pg";
 import { pool } from "../db.js";
 import type { PcProduct } from "../models/pcProduct.js";
-import type { PcProductRepository } from "../models/PcProductRepository.js";
 
 export const createShoppingBasketRepository = async (client_id: number) => {
   const query = {
@@ -57,12 +56,20 @@ export const addPcProductToShoppingBasketRepository = async (shoppingBasket_id: 
     text: 'INSERT INTO cesta_pcs (id_pc, id_cesta, id_producto) VALUES ($1, $2, $3);'
   }
 
-  for(let i = 1; i < pcProduct.components.length; i++) {
+  for(let i = 0; i < pcProduct.components.length; i++) {
     let product = pcProduct.components[i]
 
     query.values = [ pcProduct.id, shoppingBasket_id, product?.id ]
     await pool.query(query)
   }
+
+  query = {
+    name: 'add-assembly-to-basket',
+    text: 'INSERT INTO cesta_pc_montaje (id_pc, montaje) VALUES ($1, $2)',
+    values: [ pcProduct.id, pcProduct.assembly ]
+  }
+
+  await pool.query(query)
 }
 
 export const updateProductUnitsInShoppingBasketRepository = async (shoppingBasket_id: string, product_id: string, units: number) => {
@@ -90,15 +97,21 @@ export const deleteProductToShoppingBasketRepository = async (shoppingBasket_id:
 }
 
 export const deletePcToShoppingBasketRepository = async (shoppingBasket_id: string, pcId: string) => {
-  const query = {
+  let query: QueryConfig = {
     name: 'delete-pc-from-basket',
     text: 'DELETE FROM cesta_pcs WHERE id_pc = $1 AND id_cesta = $2;',
     values: [ pcId, shoppingBasket_id ]
   };
 
-  const res = await pool.query(query);
+  await pool.query(query);
 
-  return res.rowCount! > 0;
+  query = {
+    name: 'delete-assembly-from-basket-one-pc',
+    text: 'DELETE FROM cesta_pc_montaje WHERE id_pc = $1;',
+    values: [ pcId ]
+  }
+
+  await pool.query(query)
 }
 
 export const deleteAllItemsToShoppingBasketRepository = async (shoppingBasket_id: string) => {
@@ -114,13 +127,32 @@ export const deleteAllItemsToShoppingBasketRepository = async (shoppingBasket_id
 }
 
 export const deleteAllPcProductsToShoppingBasketRepository = async (shoppingBasket_id: string) => {
-  const query = {
+  let query: QueryConfig = {
+    name: 'get-all-pcs-from-basket',
+    text: 'SELECT DISTINCT(id_pc) FROM cesta_pcs WHERE id_cesta = $1;',
+    values: [ shoppingBasket_id ]
+  }
+
+  let pcsBasketResult = await pool.query(query)
+
+  query = {
     name: 'delete-all-pc-products-from-basket',
     text: 'DELETE FROM cesta_pcs WHERE id_cesta = $1;',
     values: [ shoppingBasket_id ]
   };
 
-  const res = await pool.query(query);
+  await pool.query(query);
 
-  return res.rowCount! > 0;
+  query = {
+    name: 'delete-assembly-from-basket',
+    text: 'DELETE FROM cesta_pc_montaje WHERE id_pc = $1;',
+    values: [ shoppingBasket_id ]
+  }
+
+  for(let i = 0; i < pcsBasketResult.rowCount!; i++) {
+    let id_pc = pcsBasketResult.rows[i].id_pc
+
+    query.values = [ id_pc ]
+    await pool.query(query)
+  }
 }

@@ -134,12 +134,7 @@ export const deletePcToShoppingBasket = async (req: DeletePcToShoppingBasketRequ
 
     const shoppingBasket_id = await getShoppingBasketByClientIdRepository(client?.id);
 
-    const isOk = await deletePcToShoppingBasketRepository(shoppingBasket_id, pcId);
-
-    if(!isOk) {
-      res.status(500).json({ message: 'No se ha podido eliminar el producto del carrito' })
-      return
-    }
+    await deletePcToShoppingBasketRepository(shoppingBasket_id, pcId);
 
     res.status(200).json({ message: 'Se ha eliminado correctamente el producto del carrito' })
   } catch (error) {
@@ -186,12 +181,7 @@ export const deleteAllPcProductsToShoppingBasket = async (req: express.Request, 
 
     const shoppingBasket_id = await getShoppingBasketByClientIdRepository(client?.id);
 
-    const isOk = await deleteAllPcProductsToShoppingBasketRepository(shoppingBasket_id);
-
-    if(!isOk) {
-      res.status(500).json({ message: 'No se ha podido eliminar todos los productos del carrito' })
-      return
-    }
+    await deleteAllPcProductsToShoppingBasketRepository(shoppingBasket_id);
 
     res.status(200).json({ message: 'Se han eliminado todos los productos del carrito' });
   } catch (error) {

@@ -1,15 +1,18 @@
 import express from 'express'
 import { 
   cancelOrderRepository, getClientCanceledOrdersRepository, getClientActiveOrdersRepository, getOrderFromRepository, 
-  getProductsFromOrderRepository, getSippingOptionCostRepository, updateOrderPaymentRepository, getUnassignedOrdersRepository, 
+  getProductsFromOrderRepository, getShippingOptionCostRepository, updateOrderPaymentRepository, getUnassignedOrdersRepository, 
   getAssignedOrdersToEmployeeRepository, getOrderStatusByValueRepository, updateOrderStatusByEmployeeRepository, 
   getOrdersInShippingRepository,
   unassignEmployeeToOrderRepository,
   getOrdersInShopRepository,
   getShippingMethodByValueRepository,
-  getPcProductsFromOrderRepository
+  getPcProductsFromOrderRepository,
+  getOrderByIdRepository,
+  getShippingMethodRepository,
+  getPaymentOptionRepository
 } from '../db/orders.js'
-import { getAddressByIdRepository, getClientByIdRepository, getClientByUserIdRepository, getEmployeeByIdRepository, getEmployeeByUserIdRepository } from '../db/users.js'
+import { getAddressByIdRepository, getClientByIdRepository, getClientByUserIdRepository, getEmployeeByIdRepository } from '../db/users.js'
 import { sendMail } from '../helpers/mailer.js'
 import { getShippingMethodByIdRepository } from '../db/checkout.js'
 import { ShippingMethodValue } from '../models/types/shippingMethodValue.js'
@@ -17,6 +20,37 @@ import type { AuthenticatedUser } from '../models/authenticatedUser.js'
 import { OrderStatusValue } from '../models/types/orderStatusValue.model.js'
 import { EmployeeTypeValue } from '../models/types/employeeTypeValue.js'
 import type { OrderStatus } from '../models/orderStatus.model.js'
+
+export const getOrderById = async (req: express.Request, res: express.Response) => {
+  try {
+    const authenticatedUser = req.body.authenticatedUser as AuthenticatedUser
+    const orderId = req.params.orderId
+
+    console.log(authenticatedUser)
+    console.log(orderId)
+
+    const client = await getClientByUserIdRepository(authenticatedUser.id)
+
+    if(!client) {
+      res.status(400).json({ message: 'No se ha encontrado el cliente' })
+      return
+    }
+
+    if(!orderId) {
+      res.status(400).json({ message: 'No se ha recibido un id de pedido' })
+      return
+    }
+
+    const order = await getOrderByIdRepository(orderId)
+
+    console.log(order)
+
+    res.status(200).json({ order })
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
 
 export const getClientActiveOrders = async (req: express.Request, res: express.Response) => {
   try {
@@ -296,7 +330,7 @@ export const getShippingOptionCost = async (req: express.Request, res: express.R
       return
     }
 
-    const cost = await getSippingOptionCostRepository(shippingOptionId)
+    const cost = await getShippingOptionCostRepository(shippingOptionId)
 
     if(!cost) {
       res.status(404).json({ message: 'No se ha encontrado la opción de envío' })
@@ -304,6 +338,40 @@ export const getShippingOptionCost = async (req: express.Request, res: express.R
     }
 
     res.status(200).json({ cost })
+  } catch (error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
+
+export const getShippingMethod = async (req: express.Request, res: express.Response) => {
+  try {
+    const { shippingMethodId } = req.params
+
+    if(!shippingMethodId) {
+      res.status(400).json({ message: 'Se necesita el id de la opción de envío' })
+      return
+    }
+
+    const shippingMethod = await getShippingMethodRepository(shippingMethodId)
+
+    res.status(200).json({ shippingMethod })
+  } catch (error) {
+    res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
+  }
+}
+
+export const getPaymentOption = async (req: express.Request, res: express.Response) => {
+  try {
+    const { paymentOptionId } = req.params
+
+    if(!paymentOptionId) {
+      res.status(400).json({ message: 'Se necesita el id de la opción de envío' })
+      return
+    }
+
+    const paymentOption = await getPaymentOptionRepository(paymentOptionId)
+
+    res.status(200).json({ paymentOption })
   } catch (error) {
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
