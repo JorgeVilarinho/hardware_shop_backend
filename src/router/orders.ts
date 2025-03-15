@@ -3,7 +3,8 @@ import { isAdmin, isAuthenticated } from '../middlewares/index.js'
 import { 
   cancelOrder, getAssignedOrders, getClientActiveOrders, getClientCanceledOrders, 
   getOrderById, 
-  getOrdersInShipping, getOrdersInShop, getPaymentOption, getPcProductsFromOrder, getProductsFromOrder, getShippingMethod, getShippingOptionCost,
+  getOrdersInShipping, getOrdersInShop, getPaymentOption, getPcProductsFromOrder, 
+  getProductsFromOrder, getShippingMethod, getShippingOptionCost,
   getUnassignedOrders, processOrderPayment, updateOrderStatusByEmployee 
 } from '../controllers/orders.js'
 
