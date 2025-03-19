@@ -3,7 +3,7 @@ import { isAdmin, isAdminOrOwner, isAuthenticated } from '../middlewares/index.j
 import { assignEmployeeToOrder, createEmployee, deleteEmployee, getEmployeeById, getEmployees, getEmployeeTypes, updateEmployeeById } from '../controllers/employees.js'
 
 export default (router: express.Router) => {
-  router.get('/api/employees', isAuthenticated, getEmployees)
+  router.get('/api/employees', isAuthenticated, isAdmin, getEmployees)
   router.get('/api/employee/types', isAuthenticated, getEmployeeTypes)
   router.get('/api/employee/:employeeId', isAuthenticated, getEmployeeById)
   router.put('/api/employee/:employeeId', isAuthenticated, isAdminOrOwner, updateEmployeeById)

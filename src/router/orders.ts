@@ -5,7 +5,7 @@ import {
   getOrderById, 
   getOrdersInShipping, getOrdersInShop, getPaymentOption, getPcProductsFromOrder, 
   getProductsFromOrder, getShippingMethod, getShippingOptionCost,
-  getUnassignedOrders, processOrderPayment, updateOrderStatusByEmployee 
+  getUnassignedOrders, processOrderPayment, updateOrderAssembledStatusByEmployee, updateOrderStatusByEmployee 
 } from '../controllers/orders.js'
 
 export default (router: express.Router) => {
@@ -24,4 +24,5 @@ export default (router: express.Router) => {
   router.post('/api/orders/:orderId/payment', isAuthenticated, processOrderPayment)
   router.put('/api/orders/:orderId/cancel', isAuthenticated, cancelOrder)
   router.put('/api/orders/:orderId/employee/:employeeId/changeStatus', isAuthenticated, updateOrderStatusByEmployee)
+  router.put('/api/orders/:orderId/assembled/changeStatus', isAuthenticated, updateOrderAssembledStatusByEmployee)
 }

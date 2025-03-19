@@ -10,6 +10,8 @@ import type { ShippingMethod } from "../models/shippingMethod.js";
 import { CategoryValue } from "../models/types/categoryValue.js";
 import type { PcProduct } from "../models/pcProduct.js";
 import type { PaymentOption } from "../models/paymentOption.js";
+import type { EmployeeData } from "../models/employeeData.js";
+import { EmployeeTypeValue } from "../models/types/employeeTypeValue.js";
 
 export const getOrderByIdRepository = async (orderId: string) => {
   let query: QueryConfig = {
@@ -25,12 +27,9 @@ export const getOrderByIdRepository = async (orderId: string) => {
   }
 
   let res1 = await pool.query<Order>(query);
-  
 
   for (let i = 0; i < res1.rows.length; i++) {
-    console.log('Iteración ' + (i + 1))
     const order = res1.rows[i];
-    console.log(order)
 
     query = {
       name: 'has-pc',
@@ -236,46 +235,105 @@ export const getShippingMethodByValueRepository = async (shippingMethodValue: Sh
   return res.rows[0]
 }
 
-export const getUnassignedOrdersRepository = async () => {
-  const orderStatus = await getOrderStatusByValueRepository(OrderStatusValue.PAID)
+export const getUnassignedOrdersRepository = async (employeeData: EmployeeData) => {
+  let orderStatus: OrderStatus | undefined
+  let shippingMethod: ShippingMethod | undefined
+  let query: QueryConfig | undefined
 
-  const shippingMethod = await getShippingMethodByValueRepository(ShippingMethodValue.HOME_DELIVERY)
+  switch(employeeData.tipo_trabajador) {
+    case EmployeeTypeValue.DELIVERY: 
+      orderStatus = await getOrderStatusByValueRepository(OrderStatusValue.PAID)
+      shippingMethod = await getShippingMethodByValueRepository(ShippingMethodValue.HOME_DELIVERY)
 
-  let query: QueryConfig = {
-    name: 'get-unassigned-orders',
-    text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
-          id_opcion_envio, id_opcion_pago, fecha_creacion, total, id_direccion, 
-          ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
-          FROM pedido p
-          JOIN estado_pedido ep 
-          ON p.id_estado_pedido = ep.id
-          WHERE ep.id = $1
-          AND id_metodo_envio = $2
-          AND id_trabajador IS NULL
-          ORDER BY fecha_creacion`,
-    values: [ orderStatus?.id, shippingMethod?.id ]
+      query = {
+        text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
+              id_opcion_envio, id_opcion_pago, fecha_creacion, total, id_direccion, 
+              ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
+              FROM pedido p
+              LEFT JOIN pedido_pc_montaje p_pc_mon
+              ON p.id = p_pc_mon.id_pedido
+              JOIN estado_pedido ep 
+              ON p.id_estado_pedido = ep.id
+              WHERE ep.id = $1
+              AND id_metodo_envio = $2
+              AND id_trabajador IS NULL
+              AND (
+                (p_pc_mon.montaje = true AND p_pc_mon.montado = true) 
+                OR (p_pc_mon.montaje = false) 
+                OR p_pc_mon.id_pedido IS NULL
+              )
+              ORDER BY fecha_creacion`,
+        values: [ orderStatus?.id, shippingMethod?.id ]
+      }
+      break
+    case EmployeeTypeValue.COMPUTER_ASSEMBLER:
+      query = {
+        text: `SELECT DISTINCT p.id, id_cliente, id_trabajador, id_metodo_envio, 
+              id_opcion_envio, id_opcion_pago, fecha_creacion, total, id_direccion, 
+              ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
+              FROM pedido p
+              JOIN estado_pedido ep 
+              ON p.id_estado_pedido = ep.id
+              JOIN pedido_pc p_pc
+              ON p.id = p_pc.id_pedido
+              JOIN pedido_pc_montaje p_pc_m
+              ON p.id = p_pc_m.id_pedido
+              WHERE p_pc_m.montaje = true
+              AND p_pc_m.montado = false
+              AND id_trabajador IS NULL
+              ORDER BY fecha_creacion`
+      }
+      break
+    default:
+      throw Error('No es un tipo de empleado válido')
   }
 
   let res = await pool.query<Order>(query);
 
   for (let i = 0; i < res.rows.length; i++) {
     const unassignedOrder = res.rows[i];
-    
+
     query = {
-      name: 'get-first-product-image',
-      text: `SELECT image_name AS imagen
-            FROM pedido_producto pp
-            JOIN pedido p 
-            ON pp.id_pedido = p.id
-            JOIN producto pro
-            ON pp.id_producto = pro.id
-            WHERE p.id = $1
-            LIMIT 1`,
+      name: 'has-pc',
+      text: `SELECT * 
+            FROM pedido_pc
+            WHERE id_pedido = $1`,
       values: [ unassignedOrder?.id ]
     }
 
-    let res1 = await pool.query<any>(query)
-    unassignedOrder!.imagen = res1.rows[0]?.imagen
+    let res2 = await pool.query(query)
+
+    if(res2.rowCount! > 0) {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_pc p_pc
+              INNER JOIN producto p
+              ON p_pc.id_producto = p.id
+              INNER JOIN categoria c
+              ON p.id_categoria = c.id
+              WHERE id_pedido = $1
+              AND c.valor = $2`,
+        values: [ unassignedOrder?.id, CategoryValue.PC_TOWERS_AND_ENCLOSURES ]
+      }
+
+      let res3 = await pool.query<any>(query)
+      unassignedOrder!.imagen = res3.rows[0]?.imagen
+    } else {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_producto pp
+              JOIN pedido p 
+              ON pp.id_pedido = p.id
+              JOIN producto pro
+              ON pp.id_producto = pro.id
+              WHERE p.id = $1
+              LIMIT 1`,
+        values: [ unassignedOrder?.id ]
+      }
+  
+      let res3 = await pool.query<any>(query)
+      unassignedOrder!.imagen = res3.rows[0]?.imagen
+    }
   }
 
   return res.rows
@@ -300,22 +358,48 @@ export const getAssignedOrdersToEmployeeRepository = async (employeeId: string) 
 
   for (let i = 0; i < res.rows.length; i++) {
     const assignedOrder = res.rows[i];
-    
+
     query = {
-      name: 'get-first-product-image',
-      text: `SELECT image_name AS imagen
-            FROM pedido_producto pp
-            JOIN pedido p 
-            ON pp.id_pedido = p.id
-            JOIN producto pro
-            ON pp.id_producto = pro.id
-            WHERE p.id = $1
-            LIMIT 1`,
+      name: 'has-pc',
+      text: `SELECT * 
+            FROM pedido_pc
+            WHERE id_pedido = $1`,
       values: [ assignedOrder?.id ]
     }
 
-    let res1 = await pool.query<any>(query)
-    assignedOrder!.imagen = res1.rows[0]?.imagen
+    let res2 = await pool.query(query)
+
+    if(res2.rowCount! > 0) {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_pc p_pc
+              INNER JOIN producto p
+              ON p_pc.id_producto = p.id
+              INNER JOIN categoria c
+              ON p.id_categoria = c.id
+              WHERE id_pedido = $1
+              AND c.valor = $2`,
+        values: [ assignedOrder?.id, CategoryValue.PC_TOWERS_AND_ENCLOSURES ]
+      }
+
+      let res3 = await pool.query<any>(query)
+      assignedOrder!.imagen = res3.rows[0]?.imagen
+    } else {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_producto pp
+              JOIN pedido p 
+              ON pp.id_pedido = p.id
+              JOIN producto pro
+              ON pp.id_producto = pro.id
+              WHERE p.id = $1
+              LIMIT 1`,
+        values: [ assignedOrder?.id ]
+      }
+  
+      let res3 = await pool.query<any>(query)
+      assignedOrder!.imagen = res3.rows[0]?.imagen
+    }
   }
 
   return res.rows
@@ -326,6 +410,16 @@ export const updateOrderStatusByEmployeeRepository = async (order: Order, orderS
     name: 'update-order-status-by-employee',
     text: `UPDATE pedido SET id_estado_pedido = $1 WHERE id = $2`,
     values: [ orderStatus.id, order.id ]
+  }
+
+  await pool.query(query);
+}
+
+export const updateOrderAssembledValueRepository = async (order: Order) => {
+  let query: QueryConfig = {
+    name: 'update-order-assembled-value',
+    text: `UPDATE pedido_pc_montaje SET montado = true WHERE id_pedido = $1 AND montaje = true;`,
+    values: [ order.id ]
   }
 
   await pool.query(query);
@@ -394,22 +488,48 @@ export const getOrdersInShippingRepository = async (employeeId: string, orderSta
 
   for (let i = 0; i < res.rows.length; i++) {
     const inShippingOrder = res.rows[i];
-    
+
     query = {
-      name: 'get-first-product-image',
-      text: `SELECT image_name AS imagen
-            FROM pedido_producto pp
-            JOIN pedido p 
-            ON pp.id_pedido = p.id
-            JOIN producto pro
-            ON pp.id_producto = pro.id
-            WHERE p.id = $1
-            LIMIT 1`,
+      name: 'has-pc',
+      text: `SELECT * 
+            FROM pedido_pc
+            WHERE id_pedido = $1`,
       values: [ inShippingOrder?.id ]
     }
 
-    let res1 = await pool.query<any>(query)
-    inShippingOrder!.imagen = res1.rows[0]?.imagen
+    let res2 = await pool.query(query)
+
+    if(res2.rowCount! > 0) {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_pc p_pc
+              INNER JOIN producto p
+              ON p_pc.id_producto = p.id
+              INNER JOIN categoria c
+              ON p.id_categoria = c.id
+              WHERE id_pedido = $1
+              AND c.valor = $2`,
+        values: [ inShippingOrder?.id, CategoryValue.PC_TOWERS_AND_ENCLOSURES ]
+      }
+
+      let res3 = await pool.query<any>(query)
+      inShippingOrder!.imagen = res3.rows[0]?.imagen
+    } else {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_producto pp
+              JOIN pedido p 
+              ON pp.id_pedido = p.id
+              JOIN producto pro
+              ON pp.id_producto = pro.id
+              WHERE p.id = $1
+              LIMIT 1`,
+        values: [ inShippingOrder?.id ]
+      }
+  
+      let res3 = await pool.query<any>(query)
+      inShippingOrder!.imagen = res3.rows[0]?.imagen
+    }
   }
 
   return res.rows
@@ -422,10 +542,18 @@ export const getOrdersInShopRepository = async (shippingMethod: ShippingMethod, 
           id_opcion_envio, id_opcion_pago, fecha_creacion, total, id_direccion, 
           ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
           FROM pedido p
+          LEFT JOIN pedido_pc_montaje p_pc_mon
+          ON p.id = p_pc_mon.id_pedido
           JOIN estado_pedido ep 
           ON p.id_estado_pedido = ep.id
           WHERE p.id_metodo_envio = $1
-          AND p.id_estado_pedido != $2`,
+          AND p.id_estado_pedido != $2
+          AND (
+            (p_pc_mon.montaje = true AND p_pc_mon.montado = true) 
+            OR (p_pc_mon.montaje = false) 
+            OR p_pc_mon.id_pedido IS NULL
+          )
+          ORDER BY p.fecha_creacion`,
     values: [ shippingMethod.id, orderStatus.id ]
   }
 
@@ -433,22 +561,48 @@ export const getOrdersInShopRepository = async (shippingMethod: ShippingMethod, 
 
   for (let i = 0; i < res.rows.length; i++) {
     const inShopOrder = res.rows[i];
-    
+
     query = {
-      name: 'get-first-product-image',
-      text: `SELECT image_name AS imagen
-            FROM pedido_producto pp
-            JOIN pedido p 
-            ON pp.id_pedido = p.id
-            JOIN producto pro
-            ON pp.id_producto = pro.id
-            WHERE p.id = $1
-            LIMIT 1`,
+      name: 'has-pc',
+      text: `SELECT * 
+            FROM pedido_pc
+            WHERE id_pedido = $1`,
       values: [ inShopOrder?.id ]
     }
 
-    let res1 = await pool.query<any>(query)
-    inShopOrder!.imagen = res1.rows[0]?.imagen
+    let res2 = await pool.query(query)
+
+    if(res2.rowCount! > 0) {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_pc p_pc
+              INNER JOIN producto p
+              ON p_pc.id_producto = p.id
+              INNER JOIN categoria c
+              ON p.id_categoria = c.id
+              WHERE id_pedido = $1
+              AND c.valor = $2`,
+        values: [ inShopOrder?.id, CategoryValue.PC_TOWERS_AND_ENCLOSURES ]
+      }
+
+      let res3 = await pool.query<any>(query)
+      inShopOrder!.imagen = res3.rows[0]?.imagen
+    } else {
+      query = {
+        text: `SELECT image_name AS imagen
+              FROM pedido_producto pp
+              JOIN pedido p 
+              ON pp.id_pedido = p.id
+              JOIN producto pro
+              ON pp.id_producto = pro.id
+              WHERE p.id = $1
+              LIMIT 1`,
+        values: [ inShopOrder?.id ]
+      }
+  
+      let res3 = await pool.query<any>(query)
+      inShopOrder!.imagen = res3.rows[0]?.imagen
+    }
   }
 
   return res.rows

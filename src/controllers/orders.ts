@@ -10,9 +10,10 @@ import {
   getPcProductsFromOrderRepository,
   getOrderByIdRepository,
   getShippingMethodRepository,
-  getPaymentOptionRepository
+  getPaymentOptionRepository,
+  updateOrderAssembledValueRepository
 } from '../db/orders.js'
-import { getAddressByIdRepository, getClientByIdRepository, getClientByUserIdRepository, getEmployeeByIdRepository } from '../db/users.js'
+import { getAddressByIdRepository, getClientByIdRepository, getClientByUserIdRepository, getEmployeeByIdRepository, getEmployeeDataRepository } from '../db/users.js'
 import { sendMail } from '../helpers/mailer.js'
 import { getShippingMethodByIdRepository } from '../db/checkout.js'
 import { ShippingMethodValue } from '../models/types/shippingMethodValue.js'
@@ -25,9 +26,6 @@ export const getOrderById = async (req: express.Request, res: express.Response) 
   try {
     const authenticatedUser = req.body.authenticatedUser as AuthenticatedUser
     const orderId = req.params.orderId
-
-    console.log(authenticatedUser)
-    console.log(orderId)
 
     const client = await getClientByUserIdRepository(authenticatedUser.id)
 
@@ -43,11 +41,8 @@ export const getOrderById = async (req: express.Request, res: express.Response) 
 
     const order = await getOrderByIdRepository(orderId)
 
-    console.log(order)
-
     res.status(200).json({ order })
   } catch (error) {
-    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
@@ -67,7 +62,6 @@ export const getClientActiveOrders = async (req: express.Request, res: express.R
 
     res.status(200).json({ orders })
   } catch (error) {
-    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
@@ -93,7 +87,16 @@ export const getClientCanceledOrders = async (req: express.Request, res: express
 
 export const getUnassignedOrders = async (req: express.Request, res: express.Response) => {
   try {
-    const orders = await getUnassignedOrdersRepository()
+    const authenticatedUser = req.body.authenticatedUser as AuthenticatedUser;
+
+    const employeeData = await getEmployeeDataRepository(authenticatedUser.id)
+
+    if(!employeeData) {
+      res.status(400).json({ message: 'No se ha encontrado el empleado' })
+      return
+    }
+
+    const orders = await getUnassignedOrdersRepository(employeeData)
 
     res.status(200).json({ orders })
   } catch (error) {
@@ -262,6 +265,49 @@ export const updateOrderStatusByEmployee = async (req: express.Request, res: exp
   }
 }
 
+export const updateOrderAssembledStatusByEmployee = async (req: express.Request, res: express.Response) => {
+  try {
+    const { orderId } = req.params 
+
+    if(!orderId) {
+      res.status(400).json({ message: 'Se necesita enviar el id del pedido' })
+      return
+    }
+
+    const order = await getOrderFromRepository(orderId)
+
+    if(!order) {
+      res.status(400).json({ message: 'No se ha encontrado el pedido' })
+      return
+    }
+    
+    await updateOrderAssembledValueRepository(order)
+    await unassignEmployeeToOrderRepository(order)
+
+    const client = await getClientByIdRepository(order.id_cliente)
+
+    if(!client) {
+      res.status(400).json({ message: 'No se ha podido encontrar el cliente del pedido' })
+      return
+    }
+
+    let to: string = client.email
+    let subject: string
+    let html: string
+
+    subject = `Los PC/s del pedido Nº ${order.id} han sido montados`
+    html = `<h1>Los PC/s de su pedido ya han sido montados satisfactoriamente</h1>
+    <p>Se le notifica los pcs de su pedido ya han sido montados satisfactoriamente. 
+    Y que dicho pedido está a la espera a ser procesado para su envío.</p>`
+
+    sendMail(to, subject, html)
+
+    res.status(200).end()
+  } catch (error) {
+    res.status(500).json({ message: 'No se ha podido cambiar el estado del pedido' })
+  }
+}
+
 export const getOrdersInShipping = async (req: express.Request, res: express.Response) => {
   try {
     const { employeeId } = req.params
@@ -316,7 +362,6 @@ export const getPcProductsFromOrder = async (req: express.Request, res: express.
 
     res.status(200).json({ pcs })
   } catch (error) {
-    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
@@ -339,6 +384,7 @@ export const getShippingOptionCost = async (req: express.Request, res: express.R
 
     res.status(200).json({ cost })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }

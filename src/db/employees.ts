@@ -2,6 +2,7 @@ import type { QueryConfig } from "pg"
 import { pool } from "../db.js"
 import type { EmployeeType } from "../models/employeeType.js"
 import type { Employee } from "../models/employee.js"
+import type { EmployeeData } from "../models/employeeData.js"
 
 export const getEmployeesRepository = async () => {
   let query: QueryConfig = {
@@ -185,7 +186,7 @@ export const updateEmployeeByIdRepository = async (
   }
 }
 
-export const getEmployeesOrderedByLessAssignedOrdersRepository = async () => {
+export const getEmployeesOrderedByLessAssignedOrdersRepository = async (employeeData: EmployeeData) => {
   let query: QueryConfig = {
     name: 'get-employees-ordered-by-less-assigned-orders',
     text: `SELECT u.id AS user_id, 'employee' AS kind, u.name, u.email, u.dni, u.phone, 
@@ -197,7 +198,10 @@ export const getEmployeesOrderedByLessAssignedOrdersRepository = async () => {
           ORDER BY count) AS t
           JOIN usuario u ON t.user_id = u.id
           JOIN tipo_trabajador tt ON t.tipo_trabajador = tt.id
-          ORDER BY t.count, u.name`
+          WHERE tt.valor = $1
+          AND t.admin = false
+          ORDER BY t.count, u.name`,
+    values: [ employeeData.tipo_trabajador ]
   }
 
   let res = await pool.query<Employee>(query)

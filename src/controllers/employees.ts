@@ -6,21 +6,30 @@ import {
   getEmployeeTypesRepository, updateEmployeeByIdRepository 
 } from '../db/employees.js'
 import type { CreateEmployeeRequest } from '../requests/createEmployeeRequest.js'
-import { getUserByDniRepository, getUserByEmailRepository, getUserByIdRepository } from '../db/users.js'
+import { getEmployeeDataRepository, getUserByDniRepository, getUserByEmailRepository, getUserByIdRepository } from '../db/users.js'
 import { SALT_ROUNDS } from '../config.js'
 import { EmployeesOrderBy } from '../models/types/employeesOrderBy.js'
 import type { Employee } from '../models/employee.js'
 import type { AssignEmployeeToOrderRequest } from '../requests/assignEmployeeToOrderRequest.js'
 import { sendMail } from '../helpers/mailer.js'
+import type { AuthenticatedUser } from '../models/authenticatedUser.js'
 
 export const getEmployees = async (req: express.Request, res: express.Response) => {
   try {
     const orderBy = req.query.orderBy
+    const authenticatedUser = req.body.authenticatedUser as AuthenticatedUser
+
+    const employeeData = await getEmployeeDataRepository(authenticatedUser.id)
+    
+    if(!employeeData) {
+      res.status(400).json({ message: 'No se ha encontrado el empleado' })
+      return
+    }
 
     let employees: Employee[] | undefined
 
     if(orderBy == EmployeesOrderBy.LESS_ASSIGNED) {
-      employees = await getEmployeesOrderedByLessAssignedOrdersRepository()
+      employees = await getEmployeesOrderedByLessAssignedOrdersRepository(employeeData)
     } else {
       employees = await getEmployeesRepository()
     }
@@ -33,7 +42,16 @@ export const getEmployees = async (req: express.Request, res: express.Response) 
 
 export const getEmployeesOrderedByLessAssignedOrders = async (req: express.Request, res: express.Response) => {
   try {
-    const employees = await getEmployeesOrderedByLessAssignedOrdersRepository()
+    const authenticatedUser = req.body.authenticatedUser as AuthenticatedUser
+
+    const employeeData = await getEmployeeDataRepository(authenticatedUser.id)
+    
+    if(!employeeData) {
+      res.status(400).json({ message: 'No se ha encontrado el empleado' })
+      return
+    }
+
+    const employees = await getEmployeesOrderedByLessAssignedOrdersRepository(employeeData)
 
     res.status(200).json({ employees })
   } catch (error) {

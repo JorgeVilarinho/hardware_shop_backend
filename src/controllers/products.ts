@@ -32,6 +32,7 @@ export const getMaxProductPrice = async (req: express.Request, res: express.Resp
 
     res.status(200).json({ maxPrice })
   } catch(error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
