@@ -4,7 +4,6 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
@@ -36,7 +35,6 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "1.4.5-lts.1",
     "nodemailer": "^6.10.0",
-    "pg": "^8.13.1",
-    "pm2": "^6.0.5"
+    "pg": "^8.13.1"
   }
 }
