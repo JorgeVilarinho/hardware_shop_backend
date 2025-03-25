@@ -11,7 +11,7 @@ const app = express();
 
 app.use(cors({
   credentials: true,
-  origin: '*'
+  origin: [ 'http://byteshop.com', 'http://www.byteshop.com' ]
 }));
 
 app.use(compression());

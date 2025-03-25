@@ -87,6 +87,7 @@ export const login = async (req: express.Request, res: express.Response) => {
       httpOnly: true,
       secure: false, // TODO: Change this when using https
       sameSite: 'strict',
+      domain: 'byteshop.com',
       maxAge: 1000 * 60 * 60
     })
     .status(200)
