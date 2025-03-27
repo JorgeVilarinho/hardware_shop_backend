@@ -7,7 +7,9 @@
     "preinstall": "npx only-allow pnpm",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "deploy_dev": "node --env-file=./src/environments/.development.env dist/index.js",
+    "deploy_prod": "node --env-file=./src/environments/.env dist/index.js"
   },
   "keywords": [],
   "author": "",

@@ -6,14 +6,22 @@ import cookieParser from 'cookie-parser'
 import compression from 'compression';
 import cors from 'cors';
 import fs from 'fs';
-import { PORT } from './config.js'
+import { PORT, PROD } from './config.js'
 import router from './router/index.js';
 
 const app = express();
 
+let origin: string[]
+
+if(PROD) {
+  origin = [ 'http://byteshop.com', 'http://www.byteshop.com', 'https://byteshop.com', 'https://www.byteshop.com' ]
+} else {
+  origin = [ 'http://localhost:4200' ]
+}
+
 app.use(cors({
   credentials: true,
-  origin: [ 'http://byteshop.com', 'http://www.byteshop.com', 'https://byteshop.com', 'https://www.byteshop.com' ]
+  origin
 }));
 
 app.use(compression());
@@ -23,15 +31,21 @@ app.use(express.static('public'));
 
 app.use('/', router());
 
-const options = {
-  key: fs.readFileSync('/etc/nginx/ssl/backend-byteshop.key'),
-  cert: fs.readFileSync('/etc/nginx/ssl/backend-byteshop.crt'),
+if(PROD) {
+  const options = {
+    key: fs.readFileSync('/etc/nginx/ssl/backend-byteshop.key'),
+    cert: fs.readFileSync('/etc/nginx/ssl/backend-byteshop.crt'),
+  }
+
+  const server = https.createServer(options, app);
+
+  server.listen(PORT, () => {
+    console.log(`Server running on https://localhost:${PORT}`);
+  });
+} else {
+  const server = http.createServer(app);
+
+  server.listen(PORT, () => {
+    console.log(`Server running on https://localhost:${PORT}`);
+  });
 }
-
-// const server = http.createServer(app);
-
-const server = https.createServer(options, app);
-
-server.listen(PORT, () => {
-  console.log(`Server running on https://localhost:${PORT}`);
-});
