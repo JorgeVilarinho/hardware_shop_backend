@@ -32,6 +32,8 @@ app.use(express.static('public'));
 app.use('/', router());
 
 if(PROD) {
+  console.log('Environment: PROD');
+  
   const options = {
     key: fs.readFileSync('/etc/nginx/ssl/backend-byteshop.key'),
     cert: fs.readFileSync('/etc/nginx/ssl/backend-byteshop.crt'),
@@ -40,14 +42,14 @@ if(PROD) {
   const server = https.createServer(options, app);
 
   server.listen(PORT, () => {
-    console.log('Environment: PROD');
     console.log(`Server running on https://localhost:${PORT}`);
   });
 } else {
+  console.log('Environment: DEV');
+
   const server = http.createServer(app);
 
   server.listen(PORT, () => {
-    console.log('Environment: DEV');
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
