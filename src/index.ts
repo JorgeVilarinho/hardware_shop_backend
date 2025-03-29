@@ -40,12 +40,14 @@ if(PROD) {
   const server = https.createServer(options, app);
 
   server.listen(PORT, () => {
+    console.log('Environment: PROD');
     console.log(`Server running on https://localhost:${PORT}`);
   });
 } else {
   const server = http.createServer(app);
 
   server.listen(PORT, () => {
-    console.log(`Server running on https://localhost:${PORT}`);
+    console.log('Environment: DEV');
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
