@@ -13,7 +13,7 @@ const app = express();
 
 let origin: string[]
 
-if(PROD) {
+if(PROD === 'true') {
   origin = [ 'http://byteshop.com', 'http://www.byteshop.com', 'https://byteshop.com', 'https://www.byteshop.com' ]
 } else {
   origin = [ 'http://localhost:4200' ]
@@ -31,9 +31,7 @@ app.use(express.static('public'));
 
 app.use('/', router());
 
-if(PROD) {
-  console.log('Environment: PROD');
-  
+if(PROD === 'true') {
   const options = {
     key: fs.readFileSync('/etc/nginx/ssl/backend-byteshop.key'),
     cert: fs.readFileSync('/etc/nginx/ssl/backend-byteshop.crt'),
@@ -45,8 +43,6 @@ if(PROD) {
     console.log(`Server running on https://localhost:${PORT}`);
   });
 } else {
-  console.log('Environment: DEV');
-
   const server = http.createServer(app);
 
   server.listen(PORT, () => {
