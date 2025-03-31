@@ -3,7 +3,7 @@ import { createClientRepository, getEmployeeDataRepository, getClientByUserIdRep
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET, SALT_ROUNDS } from '../config.js';
+import { JWT_SECRET, PROD, SALT_ROUNDS } from '../config.js';
 import { UserType } from '../models/types/userType.js';
 import type { TokenData } from '../models/tokenData.js';
 import type { User } from '../models/user.js';
@@ -83,27 +83,50 @@ export const login = async (req: express.Request, res: express.Response) => {
         expiresIn: '1h'
       });
 
-    res.cookie('access_token', token, {
-      httpOnly: true,
-      secure: false, // TODO: Change this when using https
-      sameSite: 'strict',
-      domain: 'byteshop.com',
-      maxAge: 1000 * 60 * 60
-    })
-    .status(200)
-    .json({
-        user_id: user.user_id,
-        id: employeeData ? employeeData.id : client?.id,
-        kind: userType,
-        name: user.name,
-        email: user.email,
-        dni: user.dni,
-        phone: user.phone,
-        admin: employeeData?.admin,
-        tipo_trabajador: employeeData?.tipo_trabajador,
-        tipo_trabajador_desc: employeeData?.tipo_trabajador_desc
-      }
-    )
+    if(PROD === 'true') {
+      res.cookie('access_token', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        domain: 'byteshop.com',
+        maxAge: 1000 * 60 * 60
+      })
+      .status(200)
+      .json({
+          user_id: user.user_id,
+          id: employeeData ? employeeData.id : client?.id,
+          kind: userType,
+          name: user.name,
+          email: user.email,
+          dni: user.dni,
+          phone: user.phone,
+          admin: employeeData?.admin,
+          tipo_trabajador: employeeData?.tipo_trabajador,
+          tipo_trabajador_desc: employeeData?.tipo_trabajador_desc
+        }
+      )
+    } else {
+      res.cookie('access_token', token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60
+      })
+      .status(200)
+      .json({
+          user_id: user.user_id,
+          id: employeeData ? employeeData.id : client?.id,
+          kind: userType,
+          name: user.name,
+          email: user.email,
+          dni: user.dni,
+          phone: user.phone,
+          admin: employeeData?.admin,
+          tipo_trabajador: employeeData?.tipo_trabajador,
+          tipo_trabajador_desc: employeeData?.tipo_trabajador_desc
+        }
+      )
+    }    
   } catch(error) {
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
