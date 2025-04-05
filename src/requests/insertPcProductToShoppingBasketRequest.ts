@@ -1,9 +1,9 @@
 import type { AuthenticatedUser } from "../models/authenticatedUser.js"
-import type { PcProduct } from "../models/pcProduct.js"
+import type { Pc } from "../models/pc.js"
 
 export interface InsertPcProductToShoppingBasketRequest extends Express.Request {
   body: {
     authenticatedUser: AuthenticatedUser,
-    pcProduct: PcProduct
+    pcProduct: Pc
   }
 }

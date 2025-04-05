@@ -8,8 +8,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "start:dev": "node --env-file=./src/environments/.development.env dist/index.js",
-    "start:prod": "node --env-file=./src/environments/.env dist/index.js"
+    "start:dev": "tsc && node --env-file=./src/environments/.development.env dist/index.js",
+    "start:prod": "tsc && node --env-file=./src/environments/.env dist/index.js"
   },
   "keywords": [],
   "author": "",

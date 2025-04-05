@@ -7,7 +7,7 @@ import type { Product } from "../models/product.js";
 import type { ShippingMethod } from "../models/shippingMethod.js";
 import type { ShippingOption } from "../models/shippingOption.js";
 import type { PaymentOption } from "../models/paymentOption.js";
-import type { PcProduct } from "../models/pcProduct.js";
+import type { Pc } from "../models/pc.js";
 
 export const getShippingMethodsRepository = async () => {
   const query: QueryConfig = {
@@ -56,7 +56,7 @@ export const getPaymentOptionsRepository = async () => {
 
 export const createOrderRepository = async (id: string, clientId: number, 
   shippingMethodId: number, shippingOptionId: number | null, paymentOptionId: number, 
-  total: number, addressId: number | null, products: Product[], pcs: PcProduct[]) => {
+  total: number, addressId: number | null, products: Product[], pcs: Pc[]) => {
     const dbClient = await pool.connect();
 
     try {
@@ -88,19 +88,19 @@ export const createOrderRepository = async (id: string, clientId: number,
       for(let i = 0; i < pcs.length; i++) {
         const pc = pcs[i]
 
+        await dbClient.query(`INSERT INTO pedido_pc(id_pedido, id_pc) VALUES (${id}, ${pc?.id});`)
+
         for(let j = 0; j < pc!.components.length; j++) {
           const component = pc!.components[j]
-
-          await dbClient.query(`INSERT INTO pedido_pc (id_pedido, id_pc, id_producto) VALUES (${id}, '${pc?.id}', ${component?.id})`)
+          
           await dbClient.query(`UPDATE producto SET unidades = unidades - 1 WHERE id = ${component?.id}`)
         }
-        
-        await dbClient.query(`INSERT INTO pedido_pc_montaje (id_pedido, id_pc, montaje) VALUES (${id}, '${pc?.id}', ${pc?.assembly})`)
       }
 
       await dbClient.query('COMMIT')
       return res1.rows[0]
     } catch (error) {
+      console.log(error)
       await dbClient.query('ROLLBACK')
       throw error
     } finally {

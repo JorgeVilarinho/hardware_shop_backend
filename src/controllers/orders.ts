@@ -43,6 +43,7 @@ export const getOrderById = async (req: express.Request, res: express.Response) 
 
     res.status(200).json({ order })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
@@ -62,6 +63,7 @@ export const getClientActiveOrders = async (req: express.Request, res: express.R
 
     res.status(200).json({ orders })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
@@ -362,6 +364,7 @@ export const getPcProductsFromOrder = async (req: express.Request, res: express.
 
     res.status(200).json({ pcs })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
@@ -496,6 +499,7 @@ export const cancelOrder = async (req: express.Request, res: express.Response) =
 
     res.status(200).json({ order })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'No se ha podido cancelar el pedido' })
   }
 }

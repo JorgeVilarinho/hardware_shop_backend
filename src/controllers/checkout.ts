@@ -64,6 +64,7 @@ export const processCheckout = async (req: ProcessCheckoutRequest, res: express.
 
     res.status(200).json({ order })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }

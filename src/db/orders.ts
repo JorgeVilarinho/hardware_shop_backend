@@ -8,7 +8,7 @@ import type { OrderStatus } from "../models/orderStatus.model.js";
 import { ShippingMethodValue } from "../models/types/shippingMethodValue.js";
 import type { ShippingMethod } from "../models/shippingMethod.js";
 import { CategoryValue } from "../models/types/categoryValue.js";
-import type { PcProduct } from "../models/pcProduct.js";
+import type { Pc } from "../models/pc.js";
 import type { PaymentOption } from "../models/paymentOption.js";
 import type { EmployeeData } from "../models/employeeData.js";
 import { EmployeeTypeValue } from "../models/types/employeeTypeValue.js";
@@ -45,8 +45,10 @@ export const getOrderByIdRepository = async (orderId: string) => {
       query = {
         text: `SELECT image_name AS imagen
               FROM pedido_pc p_pc
+              INNER JOIN pc_producto p_pro
+              ON p_pc.id_pc = p_pro.id_pc
               INNER JOIN producto p
-              ON p_pc.id_producto = p.id
+              ON p_pro.id_producto = p.id
               INNER JOIN categoria c
               ON p.id_categoria = c.id
               WHERE id_pedido = $1
@@ -110,8 +112,10 @@ export const getClientActiveOrdersRepository = async (clientId: number) => {
       query = {
         text: `SELECT image_name AS imagen
               FROM pedido_pc p_pc
+              INNER JOIN pc_producto p_pro
+              ON p_pc.id_pc = p_pro.id_pc
               INNER JOIN producto p
-              ON p_pc.id_producto = p.id
+              ON p_pro.id_producto = p.id
               INNER JOIN categoria c
               ON p.id_categoria = c.id
               WHERE id_pedido = $1
@@ -631,55 +635,46 @@ export const getProductsFromOrderRepository = async (orderId: string) => {
 }
 
 export const getPcProductsFromOrderRepository = async (orderId: string) => {
-  let pcs: PcProduct[] = []
+  let pcs: Pc[] = []
 
   let query: QueryConfig = {
     name: 'get-pcs-from-order',
-    text: `SELECT DISTINCT(id_pc) 
-          FROM pedido_pc
-          WHERE id_pedido = $1`,
+    text: `SELECT pc.id, montaje
+          FROM pc
+          JOIN pedido_pc p_pc 
+          ON p_pc.id_pc = pc.id
+          WHERE p_pc.id_pedido = $1;`,
     values: [ orderId ]
   }
 
-  let res = await pool.query(query)
-
-  let queryAssembly: QueryConfig = {
-    name: 'get-assembly-from-order',
-    text: `SELECT montaje 
-          FROM pedido_pc_montaje
-          WHERE id_pc = $1`
-  }
+  let res = await pool.query<{ id: number, montaje: boolean }>(query)
 
   let queryComponents: QueryConfig = {
     name: 'get-pc-components-from-id-pc',
     text: `SELECT p.id, m.nombre AS brand, c.nombre AS category, 
           p.nombre AS name, p.descripcion AS description, p.descuento AS discount, 
           1 AS units, p.precio AS price, p.image_name AS image
-          FROM producto p
-          JOIN pedido_pc p_pc
-          ON p.id = p_pc.id_producto
-          JOIN marca m
-          ON p.id_marca = m.id
-          JOIN categoria c
-          ON p.id_categoria = c.id
-          WHERE p_pc.id_pc = $1;`
+          FROM pc
+          JOIN pc_producto p_pro ON p_pro.id_pc = pc.id
+          JOIN producto p ON p.id = p_pro.id_producto
+          JOIN marca m ON m.id = p.id_marca
+          JOIN categoria c ON c.id = p.id_categoria
+          WHERE pc.id = $1`
   }
 
   for(let i = 0; i < res.rowCount!; i++) {
-    let id_pc = res.rows[i].id_pc
+    const pc = res.rows[i]
 
-    queryComponents.values = [ id_pc ]
-    queryAssembly.values = [ id_pc ]
+    if(!pc) throw new Error('Invalid PC query')
+
+    queryComponents.values = [ pc.id ]
 
     let resComponents = await pool.query<Product>(queryComponents)
-    let resAssembly = await pool.query(queryAssembly)
-
-    let assembly = resAssembly.rows[0].montaje as boolean
 
     pcs.push({
-      id: id_pc,
+      id: pc.id,
       components: resComponents.rows,
-      assembly
+      assembly: pc.montaje
     })
   }
 
@@ -790,14 +785,12 @@ export const cancelOrderRepository = async (orderId: string) => {
       text: `SELECT p.id, m.nombre AS brand, c.nombre AS category, 
             p.nombre AS name, p.descripcion AS description, p.descuento AS discount, 
             1 AS units, p.precio AS price, p.image_name AS image
-            FROM producto p
-            JOIN pedido_pc p_pc
-            ON p.id = p_pc.id_producto
-            JOIN marca m
-            ON p.id_marca = m.id
-            JOIN categoria c
-            ON p.id_categoria = c.id
-            WHERE p_pc.id_pc = $1;`
+            FROM pc
+            JOIN pc_producto p_pro ON p_pro.id_pc = pc.id
+            JOIN producto p ON p.id = p_pro.id_producto
+            JOIN marca m ON m.id = p.id_marca
+            JOIN categoria c ON c.id = p.id_categoria
+            WHERE pc.id = $1;`
     }
   
     for(let i = 0; i < res1.rowCount!; i++) {

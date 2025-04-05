@@ -9,6 +9,7 @@ import checkout from './checkout.js';
 import orders from './orders.js';
 import employees from './employees.js';
 import images from './images.js';
+import pc from './pc.js';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ export default (): express.Router => {
   authentication(router);
   users(router);
   products(router);
+  pc(router);
   shopping_basket(router);
   categories(router);
   brands(router);
