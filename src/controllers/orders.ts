@@ -83,6 +83,7 @@ export const getClientCanceledOrders = async (req: express.Request, res: express
 
     res.status(200).json({ orders })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
@@ -102,6 +103,7 @@ export const getUnassignedOrders = async (req: express.Request, res: express.Res
 
     res.status(200).json({ orders })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'No se ha podido devolver los pedidos no asignados' })
   }
 }
@@ -126,6 +128,7 @@ export const getOrdersInShop = async (req: express.Request, res: express.Respons
 
     res.status(200).json({ orders })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'No se ha podido devolver los pedidos no asignados' })
   }
 }
@@ -143,6 +146,7 @@ export const getAssignedOrders = async (req: express.Request, res: express.Respo
 
     res.status(200).json({ orders })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'No se ha podido devolver los pedidos no asignados' })
   }
 }
@@ -306,6 +310,7 @@ export const updateOrderAssembledStatusByEmployee = async (req: express.Request,
 
     res.status(200).end()
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'No se ha podido cambiar el estado del pedido' })
   }
 }
@@ -330,6 +335,7 @@ export const getOrdersInShipping = async (req: express.Request, res: express.Res
 
     res.status(200).json({ orders })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }

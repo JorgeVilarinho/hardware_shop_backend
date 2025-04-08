@@ -179,8 +179,10 @@ export const getClientCanceledOrdersRepository = async (clientId: number) => {
       query = {
         text: `SELECT image_name AS imagen
               FROM pedido_pc p_pc
+              INNER JOIN pc_producto p_pro
+              ON p_pc.id_pc = p_pro.id_pc
               INNER JOIN producto p
-              ON p_pc.id_producto = p.id
+              ON p_pro.id_producto = p.id
               INNER JOIN categoria c
               ON p.id_categoria = c.id
               WHERE id_pedido = $1
@@ -251,41 +253,47 @@ export const getUnassignedOrdersRepository = async (employeeData: EmployeeData) 
 
       query = {
         text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
-              id_opcion_envio, id_opcion_pago, fecha_creacion, total, id_direccion, 
+              id_opcion_envio, id_opcion_pago, p.fecha_creacion, total, id_direccion, 
               ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
               FROM pedido p
-              LEFT JOIN pedido_pc_montaje p_pc_mon
-              ON p.id = p_pc_mon.id_pedido
+              LEFT JOIN pedido_pc p_pc
+              ON p.id = p_pc.id_pedido
+              LEFT JOIN pc ON pc.id = p_pc.id_pc
               JOIN estado_pedido ep 
               ON p.id_estado_pedido = ep.id
               WHERE ep.id = $1
               AND id_metodo_envio = $2
               AND id_trabajador IS NULL
               AND (
-                (p_pc_mon.montaje = true AND p_pc_mon.montado = true) 
-                OR (p_pc_mon.montaje = false) 
-                OR p_pc_mon.id_pedido IS NULL
+                (pc.montaje = true AND pc.montado = true) 
+                OR (pc.montaje = false) 
+                OR p_pc.id_pedido IS NULL
               )
-              ORDER BY fecha_creacion`,
+              ORDER BY p.fecha_creacion`,
         values: [ orderStatus?.id, shippingMethod?.id ]
       }
       break
     case EmployeeTypeValue.COMPUTER_ASSEMBLER:
       query = {
-        text: `SELECT DISTINCT p.id, id_cliente, id_trabajador, id_metodo_envio, 
-              id_opcion_envio, id_opcion_pago, fecha_creacion, total, id_direccion, 
+        text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
+              id_opcion_envio, id_opcion_pago, p.fecha_creacion, total, id_direccion, 
               ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
               FROM pedido p
               JOIN estado_pedido ep 
               ON p.id_estado_pedido = ep.id
               JOIN pedido_pc p_pc
               ON p.id = p_pc.id_pedido
-              JOIN pedido_pc_montaje p_pc_m
-              ON p.id = p_pc_m.id_pedido
-              WHERE p_pc_m.montaje = true
-              AND p_pc_m.montado = false
+              JOIN pc
+              ON pc.id = p_pc.id_pc
+              WHERE pc.montaje = true
+              AND pc.montado = false
               AND id_trabajador IS NULL
-              ORDER BY fecha_creacion`
+              AND (
+                (id_metodo_envio = 1 AND id_estado_pedido = 3) 
+                OR (id_metodo_envio = 2 AND id_opcion_pago = 1 AND id_estado_pedido = 3)
+                OR (id_metodo_envio = 2 AND id_opcion_pago = 2)
+              )
+              ORDER BY p.fecha_creacion`
       }
       break
     default:
@@ -311,8 +319,10 @@ export const getUnassignedOrdersRepository = async (employeeData: EmployeeData) 
       query = {
         text: `SELECT image_name AS imagen
               FROM pedido_pc p_pc
+              INNER JOIN pc_producto p_pro
+              ON p_pc.id_pc = p_pro.id_pc
               INNER JOIN producto p
-              ON p_pc.id_producto = p.id
+              ON p_pro.id_producto = p.id
               INNER JOIN categoria c
               ON p.id_categoria = c.id
               WHERE id_pedido = $1
@@ -377,8 +387,10 @@ export const getAssignedOrdersToEmployeeRepository = async (employeeId: string) 
       query = {
         text: `SELECT image_name AS imagen
               FROM pedido_pc p_pc
+              INNER JOIN pc_producto p_pro
+              ON p_pc.id_pc = p_pro.id_pc
               INNER JOIN producto p
-              ON p_pc.id_producto = p.id
+              ON p_pro.id_producto = p.id
               INNER JOIN categoria c
               ON p.id_categoria = c.id
               WHERE id_pedido = $1
@@ -421,12 +433,28 @@ export const updateOrderStatusByEmployeeRepository = async (order: Order, orderS
 
 export const updateOrderAssembledValueRepository = async (order: Order) => {
   let query: QueryConfig = {
-    name: 'update-order-assembled-value',
-    text: `UPDATE pedido_pc_montaje SET montado = true WHERE id_pedido = $1 AND montaje = true;`,
+    name: 'select-mounted-pcs-from-order',
+    text: `SELECT pc.id 
+          FROM pedido_pc p_pc
+          JOIN pc
+          ON pc.id = p_pc.id_pc
+          WHERE id_pedido = $1
+          AND pc.montaje = true`,
     values: [ order.id ]
   }
 
-  await pool.query(query);
+  let res = await pool.query<{ id: number }>(query)
+
+  query = {
+    name: 'update-pc-assembled-value',
+    text: `UPDATE pc SET montado = true WHERE id = $1;`
+  }
+
+  for(let i = 0; i < res.rowCount!; i++) {
+    query.values = [ res.rows[i]?.id ]
+
+    await pool.query(query)
+  }
 }
 
 export const unassignEmployeeToOrderRepository = async (order: Order) => {
@@ -507,8 +535,10 @@ export const getOrdersInShippingRepository = async (employeeId: string, orderSta
       query = {
         text: `SELECT image_name AS imagen
               FROM pedido_pc p_pc
+              INNER JOIN pc_producto p_pro
+              ON p_pc.id_pc = p_pro.id_pc
               INNER JOIN producto p
-              ON p_pc.id_producto = p.id
+              ON p_pro.id_producto = p.id
               INNER JOIN categoria c
               ON p.id_categoria = c.id
               WHERE id_pedido = $1
@@ -543,19 +573,21 @@ export const getOrdersInShopRepository = async (shippingMethod: ShippingMethod, 
   let query: QueryConfig = {
     name: 'get-orders-in-shop',
     text: `SELECT p.id, id_cliente, id_trabajador, id_metodo_envio, 
-          id_opcion_envio, id_opcion_pago, fecha_creacion, total, id_direccion, 
+          id_opcion_envio, id_opcion_pago, p.fecha_creacion, total, id_direccion, 
           ep.valor AS estado_pedido_valor, ep.descripcion AS estado_pedido_desc
           FROM pedido p
-          LEFT JOIN pedido_pc_montaje p_pc_mon
-          ON p.id = p_pc_mon.id_pedido
+          LEFT JOIN pedido_pc p_pc
+          ON p.id = p_pc.id_pedido
+          LEFT JOIN pc ON pc.id = p_pc.id_pc
           JOIN estado_pedido ep 
           ON p.id_estado_pedido = ep.id
-          WHERE p.id_metodo_envio = $1
-          AND p.id_estado_pedido != $2
+          WHERE id_metodo_envio = $1
+          AND ep.id != $2
+          AND id_trabajador IS NULL
           AND (
-            (p_pc_mon.montaje = true AND p_pc_mon.montado = true) 
-            OR (p_pc_mon.montaje = false) 
-            OR p_pc_mon.id_pedido IS NULL
+            (pc.montaje = true AND pc.montado = true) 
+            OR (pc.montaje = false) 
+            OR p_pc.id_pedido IS NULL
           )
           ORDER BY p.fecha_creacion`,
     values: [ shippingMethod.id, orderStatus.id ]
@@ -580,8 +612,10 @@ export const getOrdersInShopRepository = async (shippingMethod: ShippingMethod, 
       query = {
         text: `SELECT image_name AS imagen
               FROM pedido_pc p_pc
+              INNER JOIN pc_producto p_pro
+              ON p_pc.id_pc = p_pro.id_pc
               INNER JOIN producto p
-              ON p_pc.id_producto = p.id
+              ON p_pro.id_producto = p.id
               INNER JOIN categoria c
               ON p.id_categoria = c.id
               WHERE id_pedido = $1
