@@ -31,22 +31,22 @@ export const getProductsByFiltersRepository = async (orderBy: string, minPrice: 
                   JOIN marca m ON m.id = p.id_marca`;
   let queryTextFilters = [];
   let values: any[] = [];
-  let count = 0;
+  let count = 1;
   
   if(minPrice) {
-    queryTextFilters.push('p.precio >= $' + (count + 1));
+    queryTextFilters.push('p.precio >= $' + count);
     values.push(minPrice);
     count++;
   }
 
   if(maxPrice) {
-    queryTextFilters.push('p.precio <= $' + (count + 1));
+    queryTextFilters.push('p.precio <= $' + count);
     values.push(maxPrice);
     count++;
   }
 
   if(category) {
-    queryTextFilters.push('c.id = $' + (count + 1));
+    queryTextFilters.push('c.id = $' + count);
     values.push(category);
     count++;
   }
