@@ -14,7 +14,7 @@ const app = express();
 let origin: string[]
 
 if(PROD === 'true') {
-  origin = [ 'http://byteshop.com', 'http://www.byteshop.com', 'https://byteshop.com', 'https://www.byteshop.com' ]
+  origin = [ 'http://byteshop-t.com', 'http://www.byteshop-t.com', 'https://byteshop-t.com', 'https://www.byteshop-t.com' ]
 } else {
   origin = [ 'http://localhost:4200' ]
 }
