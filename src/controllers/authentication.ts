@@ -26,7 +26,9 @@ export const register = async (req: express.Request, res: express.Response) => {
       return;
     }
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    const salt_rounds = Number(SALT_ROUNDS)
+    
+    const hashedPassword = await bcrypt.hash(password, salt_rounds);
 
     await createClientRepository(name, email, hashedPassword);
     res.status(200).json({ message: 'Se ha realizado el registro correctamente' });

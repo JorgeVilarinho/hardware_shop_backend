@@ -108,7 +108,9 @@ export const createEmployee = async (req: CreateEmployeeRequest, res: express.Re
       return;
     }
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
+    const salt_rounds = Number(SALT_ROUNDS)
+
+    const hashedPassword = await bcrypt.hash(password, salt_rounds)
 
     await createEmployeeRepository(fullName, dni, email, phone, hashedPassword, admin, employeeType)
 
@@ -160,7 +162,9 @@ export const updateEmployeeById = async (req: express.Request, res: express.Resp
         return
       }
 
-      hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
+      const salt_rounds = Number(SALT_ROUNDS)
+
+      hashedPassword = await bcrypt.hash(password, salt_rounds)
     }
 
     await updateEmployeeByIdRepository(employeeId, userId, fullName, dni, email, phone, hashedPassword, admin, employeeType)

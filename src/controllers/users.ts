@@ -87,7 +87,9 @@ export const updateUserPassword = async (req: express.Request, res: express.Resp
     const samePassword = await bcrypt.compare(password, _user?.password ?? '');
 
     if(!samePassword) {
-      const encryptedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      const salt_rounds = Number(SALT_ROUNDS)
+
+      const encryptedPassword = await bcrypt.hash(password, salt_rounds);
 
       const isOk = await updateUserPasswordRepository(authenticatedUser.id, encryptedPassword)
 
