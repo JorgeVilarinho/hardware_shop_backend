@@ -31,6 +31,7 @@ export const register = async (req: express.Request, res: express.Response) => {
     await createClientRepository(name, email, hashedPassword);
     res.status(200).json({ message: 'Se ha realizado el registro correctamente' });
   } catch(error) {
+    console.log(error)
     res.status(500).json({ message: 'Ha ocurrido un error con la comunicación del servidor.' })
   }
 }
